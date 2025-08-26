@@ -1,6 +1,7 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import authService from '../services/authService';
 
 const HeaderContainer = styled.header`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -71,6 +72,7 @@ const LogoutButton = styled.button`
 
 const Header = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Não mostrar o header na página de login (rota raiz)
   if (location.pathname === '/') {
@@ -78,10 +80,11 @@ const Header = () => {
   }
 
   const handleLogout = () => {
-    // Aqui você implementaria a lógica de logout
-    // Por exemplo, limpar tokens, redirecionar, etc.
-    console.log('Logout realizado');
-    window.location.href = '/';
+    // Usar o serviço de autenticação para logout
+    authService.logout();
+    
+    // Redirecionar para a página de login
+    navigate('/');
   };
 
   return (

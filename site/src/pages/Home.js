@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import authService from '../services/authService';
 
 const LoginContainer = styled.div`
   min-height: 100vh;
@@ -128,6 +129,16 @@ const SuccessMessage = styled.div`
   border: 1px solid #cfc;
 `;
 
+const LoadingMessage = styled.div`
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 0.8rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  border: 1px solid #bbdefb;
+`;
+
 const Home = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -138,6 +149,7 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loadingStep, setLoadingStep] = useState('');
 
   const handleChange = (e) => {
     setFormData({
@@ -153,6 +165,7 @@ const Home = () => {
     setIsLoading(true);
     setError('');
     setSuccess('');
+    setLoadingStep('');
 
     // Validação básica
     if (!formData.domain || !formData.email || !formData.password) {
@@ -162,13 +175,23 @@ const Home = () => {
     }
 
     try {
-      // Simular requisição de login
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Limpar domínio (remover http/https e www se existir)
+      const cleanDomain = formData.domain
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+        .split('/')[0];
+
+      setLoadingStep('Consultando domínio...');
       
-      // Aqui você faria a chamada real para sua API
-      // const response = await axios.post('/api/login', formData);
-      
-      setSuccess('Login realizado com sucesso! Redirecionando...');
+      // Fazer login usando o serviço de autenticação
+      const loginResult = await authService.login(
+        cleanDomain,
+        formData.email,
+        formData.password
+      );
+
+      setLoadingStep('Login realizado com sucesso!');
+      setSuccess(`Bem-vindo, ${loginResult.user.name || loginResult.user.email}! Redirecionando...`);
       
       // Redirecionar para o Dashboard após login bem-sucedido
       setTimeout(() => {
@@ -176,7 +199,8 @@ const Home = () => {
       }, 2000);
       
     } catch (err) {
-      setError('Erro ao fazer login. Verifique suas credenciais.');
+      setError(err.message || 'Erro ao fazer login. Tente novamente.');
+      setLoadingStep('');
     } finally {
       setIsLoading(false);
     }
@@ -191,6 +215,7 @@ const Home = () => {
         <LoginForm onSubmit={handleSubmit}>
           {error && <ErrorMessage>{error}</ErrorMessage>}
           {success && <SuccessMessage>{success}</SuccessMessage>}
+          {loadingStep && <LoadingMessage>{loadingStep}</LoadingMessage>}
           
           <FormGroup>
             <Label htmlFor="domain">Domínio *</Label>
