@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useStackNav } from '../contexts/StackNav';
 import styled from 'styled-components';
 import authService from '../services/authService';
 
@@ -140,7 +140,7 @@ const LoadingMessage = styled.div`
 `;
 
 const Home = () => {
-  const navigate = useNavigate();
+  const { setCurrentPage } = useStackNav();
   const [formData, setFormData] = useState({
     domain: '',
     email: '',
@@ -193,9 +193,9 @@ const Home = () => {
       setLoadingStep('Login realizado com sucesso!');
       setSuccess(`Bem-vindo, ${loginResult.user.name || loginResult.user.email}! Redirecionando...`);
       
-      // Redirecionar para o Dashboard após login bem-sucedido
+      // Redirecionar para o Dashboard (URL fica na raiz)
       setTimeout(() => {
-        navigate('/dashboard');
+        setCurrentPage('dashboard');
       }, 2000);
       
     } catch (err) {

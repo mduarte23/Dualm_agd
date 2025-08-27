@@ -1,11 +1,12 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import styled from 'styled-components';
 import Header from './components/Header';
 import Home from './pages/Home';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Dashboard from './pages/Dashboard';
+import { StackNavProvider, useStackNav } from './contexts/StackNav';
 
 const AppContainer = styled.div`
   min-height: 100vh;
@@ -18,20 +19,18 @@ const MainContent = styled.main`
   margin: 0 auto;
 `;
 
-function AppContent() {
-  const location = useLocation();
-  const isLoginPage = location.pathname === '/';
+function StackedRoot() {
+  const { currentPage } = useStackNav();
+  const isLoginPage = currentPage === 'login';
 
   return (
     <AppContainer>
       <Header />
       <MainContent isLoginPage={isLoginPage}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-        </Routes>
+        {currentPage === 'login' && <Home />}
+        {currentPage === 'dashboard' && <Dashboard />}
+        {currentPage === 'about' && <About />}
+        {currentPage === 'contact' && <Contact />}
       </MainContent>
     </AppContainer>
   );
@@ -40,7 +39,11 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AppContent />
+      <StackNavProvider>
+        <Routes>
+          <Route path="/" element={<StackedRoot />} />
+        </Routes>
+      </StackNavProvider>
     </Router>
   );
 }

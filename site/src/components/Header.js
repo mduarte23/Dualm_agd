@@ -1,7 +1,8 @@
 import React from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import authService from '../services/authService';
+import { useStackNav } from '../contexts/StackNav';
 
 const HeaderContainer = styled.header`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -71,48 +72,35 @@ const LogoutButton = styled.button`
 `;
 
 const Header = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const { currentPage, setCurrentPage } = useStackNav();
 
-  // Não mostrar o header na página de login (rota raiz)
-  if (location.pathname === '/') {
-    return null;
-  }
+  // Não mostrar o header na página de login
+  if (currentPage === 'login') return null;
 
   const handleLogout = () => {
     // Usar o serviço de autenticação para logout
     authService.logout();
-    
-    // Redirecionar para a página de login
-    navigate('/');
+    // Voltar para a página de login mantendo URL raiz
+    setCurrentPage('login');
   };
 
   return (
     <HeaderContainer>
       <Nav>
-        <Logo to="/dashboard">Dualm</Logo>
+        <Logo to="#" onClick={(e) => { e.preventDefault(); setCurrentPage('dashboard'); }}>Dualm</Logo>
         <NavLinks>
           <li>
-            <NavLink 
-              to="/dashboard" 
-              className={location.pathname === '/dashboard' ? 'active' : ''}
-            >
+            <NavLink to="#" onClick={(e) => { e.preventDefault(); setCurrentPage('dashboard'); }} className={currentPage === 'dashboard' ? 'active' : ''}>
               Dashboard
             </NavLink>
           </li>
           <li>
-            <NavLink 
-              to="/about" 
-              className={location.pathname === '/about' ? 'active' : ''}
-            >
+            <NavLink to="#" onClick={(e) => { e.preventDefault(); setCurrentPage('about'); }} className={currentPage === 'about' ? 'active' : ''}>
               Sobre
             </NavLink>
           </li>
           <li>
-            <NavLink 
-              to="/contact" 
-              className={location.pathname === '/contact' ? 'active' : ''}
-            >
+            <NavLink to="#" onClick={(e) => { e.preventDefault(); setCurrentPage('contact'); }} className={currentPage === 'contact' ? 'active' : ''}>
               Contato
             </NavLink>
           </li>
