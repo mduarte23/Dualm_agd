@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from model.agendamento import agendamento
+import model.agendamento as agendamento_mod
 
 
 agendamento_bp = Blueprint("agendamento", __name__)
@@ -18,7 +18,19 @@ def criar_agendamento():
             "message": f"Campos obrigatórios ausentes: {', '.join(missing)}"
         }), 400
 
-    result = agendamento(
+    # Busca função no módulo para evitar erro em import-time
+    func = getattr(agendamento_mod, "agendamento", None)
+    if not callable(func):
+        nomes = ", ".join(sorted([n for n in dir(agendamento_mod) if not n.startswith("_")]))
+        origem = getattr(agendamento_mod, "__file__", "<desconhecido>")
+        return jsonify({
+            "success": False,
+            "message": "Função 'agendamento' não encontrada em model.agendamento",
+            "disponiveis": nomes,
+            "modulo": origem
+        }), 500
+
+    result = func(
         id_cliente=data["id_cliente"],
         id_especialista=data["id_especialista"],
         data=data["data"],

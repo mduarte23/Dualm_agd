@@ -1,9 +1,19 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
+import authService from '../services/authService';
 
 const StackNavContext = createContext(null);
 
 export const StackNavProvider = ({ children }) => {
   const [currentPage, setCurrentPage] = useState('login'); // 'login' | 'dashboard' | 'about' | 'contact'
+
+  // Inicializa a página de acordo com a autenticação existente
+  useEffect(() => {
+    if (authService.isAuthenticated()) {
+      setCurrentPage('dashboard');
+    } else {
+      setCurrentPage('login');
+    }
+  }, []);
 
   const value = useMemo(() => ({ currentPage, setCurrentPage }), [currentPage]);
   return (

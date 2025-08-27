@@ -31,28 +31,8 @@ const Logo = styled(Link)`
   }
 `;
 
-const NavLinks = styled.ul`
-  display: flex;
-  gap: 2rem;
-  align-items: center;
-`;
-
-const NavLink = styled(Link)`
-  color: white;
-  font-weight: 500;
-  padding: 0.5rem 1rem;
-  border-radius: 25px;
-  transition: all 0.3s ease;
-  position: relative;
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
-  }
-
-  &.active {
-    background-color: rgba(255, 255, 255, 0.2);
-  }
+const Spacer = styled.div`
+  flex: 1;
 `;
 
 const LogoutButton = styled.button`
@@ -88,28 +68,8 @@ const Header = () => {
     <HeaderContainer>
       <Nav>
         <Logo to="#" onClick={(e) => { e.preventDefault(); setCurrentPage('dashboard'); }}>Dualm</Logo>
-        <NavLinks>
-          <li>
-            <NavLink to="#" onClick={(e) => { e.preventDefault(); setCurrentPage('dashboard'); }} className={currentPage === 'dashboard' ? 'active' : ''}>
-              Dashboard
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="#" onClick={(e) => { e.preventDefault(); setCurrentPage('about'); }} className={currentPage === 'about' ? 'active' : ''}>
-              Sobre
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="#" onClick={(e) => { e.preventDefault(); setCurrentPage('contact'); }} className={currentPage === 'contact' ? 'active' : ''}>
-              Contato
-            </NavLink>
-          </li>
-          <li>
-            <LogoutButton onClick={handleLogout}>
-              Sair
-            </LogoutButton>
-          </li>
-        </NavLinks>
+        <Spacer />
+        <LogoutButton onClick={handleLogout}>Sair</LogoutButton>
       </Nav>
     </HeaderContainer>
   );
