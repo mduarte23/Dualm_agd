@@ -150,6 +150,14 @@ const Home = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loadingStep, setLoadingStep] = useState('');
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotInfo, setForgotInfo] = useState({ domain: '', email: '' });
+  const [forgotMsg, setForgotMsg] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1);
+  const [forgotCode, setForgotCode] = useState('');
+  const [forgotNewPass, setForgotNewPass] = useState({ pass: '', confirm: '' });
 
   const handleChange = (e) => {
     setFormData({
@@ -261,10 +269,127 @@ const Home = () => {
           </LoginButton>
         </LoginForm>
 
-        <ForgotPassword href="#">
-          Esqueceu sua senha?
-        </ForgotPassword>
+        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 12 }}>
+          <ForgotPassword href="#" onClick={(e) => { e.preventDefault(); setForgotInfo({ domain: formData.domain, email: formData.email }); setForgotMsg(''); setForgotError(''); setForgotStep(1); setForgotOpen(true); }}>
+            Esqueceu sua senha?
+          </ForgotPassword>
+        </div>
       </LoginCard>
+
+      {forgotOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10050 }}
+          onClick={() => { if (!forgotLoading) setForgotOpen(false); }}
+        >
+          <div
+            style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 420, padding: 24, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Recuperar senha</div>
+            {forgotMsg && <SuccessMessage>{forgotMsg}</SuccessMessage>}
+            {forgotError && <ErrorMessage>{forgotError}</ErrorMessage>}
+
+            {forgotStep === 1 && (
+              <>
+                <div style={{ marginBottom: 12 }}>
+                  <Label>Domínio</Label>
+                  <Input value={forgotInfo.domain} onChange={(e) => setForgotInfo(i => ({ ...i, domain: e.target.value }))} placeholder="exemplo.com" />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <Label>E-mail</Label>
+                  <Input type="email" value={forgotInfo.email} onChange={(e) => setForgotInfo(i => ({ ...i, email: e.target.value }))} placeholder="seu@email.com" />
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+                  <button onClick={() => setForgotOpen(false)} disabled={forgotLoading} style={{ padding: '10px 14px', borderRadius: 10, background: '#f3f4f6', color: '#374151', fontWeight: 700 }}>
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        setForgotMsg('');
+                        setForgotError('');
+                        if (!forgotInfo.domain || !forgotInfo.email) {
+                          setForgotError('Preencha domínio e e-mail.');
+                          return;
+                        }
+                        setForgotLoading(true);
+                        const cleanDomain = forgotInfo.domain
+                          .replace(/^https?:\/\//, '')
+                          .replace(/^www\./, '')
+                          .split('/')[0];
+                        await authService.forgotPassword(cleanDomain, forgotInfo.email);
+                        setForgotMsg('Código enviado ao e-mail, válido por 15 minutos.');
+                        setForgotStep(2);
+                      } catch (err) {
+                        setForgotError(err.message || 'Erro ao solicitar. Tente novamente.');
+                      } finally {
+                        setForgotLoading(false);
+                      }
+                    }}
+                    disabled={forgotLoading}
+                    style={{ padding: '10px 14px', borderRadius: 10, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff', fontWeight: 700 }}
+                  >
+                    {forgotLoading ? 'Enviando...' : 'Enviar código'}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {forgotStep === 2 && (
+              <>
+                <div style={{ marginBottom: 12 }}>
+                  <Label>Código de recuperação</Label>
+                  <Input value={forgotCode} onChange={(e) => setForgotCode(e.target.value)} placeholder="6 dígitos" />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <Label>Nova senha</Label>
+                  <Input type="password" value={forgotNewPass.pass} onChange={(e) => setForgotNewPass(v => ({ ...v, pass: e.target.value }))} placeholder="••••••••" />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <Label>Confirmar senha</Label>
+                  <Input type="password" value={forgotNewPass.confirm} onChange={(e) => setForgotNewPass(v => ({ ...v, confirm: e.target.value }))} placeholder="••••••••" />
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+                  <button onClick={() => setForgotOpen(false)} disabled={forgotLoading} style={{ padding: '10px 14px', borderRadius: 10, background: '#f3f4f6', color: '#374151', fontWeight: 700 }}>
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        setForgotMsg('');
+                        setForgotError('');
+                        if (!forgotInfo.domain || !forgotInfo.email || !forgotCode || !forgotNewPass.pass) {
+                          setForgotError('Preencha domínio, e-mail, código e nova senha.');
+                          return;
+                        }
+                        if (forgotNewPass.pass !== forgotNewPass.confirm) {
+                          setForgotError('As senhas não conferem.');
+                          return;
+                        }
+                        setForgotLoading(true);
+                        const cleanDomain = forgotInfo.domain
+                          .replace(/^https?:\/\//, '')
+                          .replace(/^www\./, '')
+                          .split('/')[0];
+                        await authService.resetPasswordWithCode(cleanDomain, forgotInfo.email, forgotCode, forgotNewPass.pass);
+                        setForgotMsg('Senha redefinida com sucesso. Faça login com a nova senha.');
+                      } catch (err) {
+                        setForgotError(err.message || 'Erro ao redefinir senha.');
+                      } finally {
+                        setForgotLoading(false);
+                      }
+                    }}
+                    disabled={forgotLoading}
+                    style={{ padding: '10px 14px', borderRadius: 10, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff', fontWeight: 700 }}
+                  >
+                    {forgotLoading ? 'Enviando...' : 'Redefinir senha'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </LoginContainer>
   );
 };

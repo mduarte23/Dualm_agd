@@ -67,6 +67,7 @@ const Sidebar = () => {
   const items = [
     { key: 'dashboard', label: 'Dashboard', icon: '📊' },
     { key: 'agendamento', label: 'Agendamento', icon: '🗓️' },
+    { key: 'cliente', label: 'Clientes', icon: '🧑' },
     { key: 'especialistas', label: 'Especialistas', icon: '👩‍⚕️' },
     { key: 'especialidades', label: 'Especialidades', icon: '🏷️' },
     { key: 'convenios', label: 'Convênios', icon: '📄' },

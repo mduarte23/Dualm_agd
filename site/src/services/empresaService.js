@@ -20,9 +20,14 @@ export async function getEmpresa() {
 
 export async function updateEmpresa(data) {
   const dominio = ensureDomain();
-  const res = await axios.put(`${API_BASE_URL}/empresa`, { dominio, ...data });
-  const payload = res.data || {};
-  if (!payload.success) throw new Error(payload.message || 'Erro ao salvar empresa');
+  const payload = { ...data };
+  // compat: se antecedencias existir, envia ambas chaves
+  if (Array.isArray(payload.antecedencias)) {
+    payload.antecedencia = payload.antecedencias[0] ?? undefined;
+  }
+  const res = await axios.put(`${API_BASE_URL}/empresa`, { dominio, ...payload });
+  const responsePayload = res.data || {};
+  if (!responsePayload.success) throw new Error(responsePayload.message || 'Erro ao salvar empresa');
   return true;
 }
 

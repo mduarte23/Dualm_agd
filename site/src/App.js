@@ -7,6 +7,7 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Dashboard from './pages/Dashboard';
 import Agendamento from './pages/Agendamento';
+import Cliente from './pages/Cliente';
 import Especialistas from './pages/Especialistas';
 import Especialidades from './pages/Especialidades';
 import Convenios from './pages/Convenios';
@@ -52,6 +53,7 @@ function StackedRoot() {
           {currentPage === 'login' && <Home />}
           {currentPage === 'dashboard' && <Dashboard />}
           {currentPage === 'agendamento' && <Agendamento />}
+          {currentPage === 'cliente' && <Cliente />}
           {currentPage === 'especialistas' && <Especialistas />}
           {currentPage === 'especialidades' && <Especialidades />}
           {currentPage === 'convenios' && <Convenios />}

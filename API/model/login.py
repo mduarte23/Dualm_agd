@@ -38,12 +38,25 @@ def busca_ip(dominio):
         conn = conn_info["connection"]
         try:
             with conn.cursor() as cur:
+                # 1) tentativa exata
                 cur.execute("SELECT ip FROM empresas_clientes WHERE dominio = %s", (dominio,))
                 row = cur.fetchone()
                 if row:
                     return row["ip"]
-                else:
-                    return None
+
+                # 2) se não houver ponto, tentar com .com (ex.: dualm -> dualm.com)
+                if "." not in dominio:
+                    cur.execute("SELECT ip FROM empresas_clientes WHERE dominio = %s", (f"{dominio}.com",))
+                    row = cur.fetchone()
+                    if row:
+                        return row["ip"]
+
+                # 3) fallback: tentar por prefixo (caso o domínio armazenado seja subdomínio)
+                cur.execute("SELECT ip FROM empresas_clientes WHERE dominio ILIKE %s ORDER BY LENGTH(dominio) ASC LIMIT 1", (f"{dominio}%",))
+                row = cur.fetchone()
+                if row:
+                    return row["ip"]
+                return None
         except Exception as e:
             print(f"Erro ao buscar IP: {e}")
             return None

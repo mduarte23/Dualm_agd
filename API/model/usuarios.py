@@ -20,6 +20,23 @@ def _has_column(conn, table_name, column_name):
         return False
 
 
+def _has_table(conn, table_name):
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT 1
+                FROM information_schema.tables
+                WHERE table_name = %s
+                LIMIT 1
+                """,
+                (table_name,),
+            )
+            return cur.fetchone() is not None
+    except Exception:
+        return False
+
+
 def listar(dominio):
     if not dominio:
         return {"success": False, "message": "Parâmetro 'dominio' é obrigatório"}
@@ -34,16 +51,19 @@ def listar(dominio):
 
     conn = conn_info["connection"]
     try:
-        nivel_exists = _has_column(conn, 'usuarios', 'nivel') or _has_column(conn, 'usuarios', 'id_nivel')
+        usuarios_has_nivel = _has_column(conn, 'usuarios', 'nivel')
+        usuarios_has_id_nivel = _has_column(conn, 'usuarios', 'id_nivel')
+        nivel_table_exists = _has_table(conn, 'nivel_usuario')
         with conn.cursor() as cur:
-            if nivel_exists:
+            if usuarios_has_id_nivel and nivel_table_exists:
+                # Temos FK e tabela de níveis: podemos realizar o JOIN e retornar nome do nível
                 cur.execute(
                     """
                     SELECT 
                         u.id_usuario, 
                         u.nome_usuario, 
                         u.email,
-                        COALESCE(n.nivel, COALESCE(u.nivel, 'usuario')) AS nivel,
+                        COALESCE(n.nivel, 'usuario') AS nivel,
                         n.id_nivel
                     FROM usuarios u
                     LEFT JOIN nivel_usuario n ON n.id_nivel = u.id_nivel
@@ -51,7 +71,36 @@ def listar(dominio):
                     """
                 )
                 rows = cur.fetchall() or []
+            elif usuarios_has_nivel:
+                # Não há tabela de níveis, mas há coluna nivel em usuarios
+                cur.execute(
+                    """
+                    SELECT 
+                        id_usuario, 
+                        nome_usuario, 
+                        email,
+                        COALESCE(nivel, 'usuario') AS nivel
+                    FROM usuarios
+                    ORDER BY nome_usuario ASC
+                    """
+                )
+                rows = cur.fetchall() or []
+            elif usuarios_has_id_nivel:
+                # Há id_nivel em usuarios, mas não existe tabela de níveis: retornar id_nivel bruto
+                cur.execute(
+                    """
+                    SELECT 
+                        id_usuario, 
+                        nome_usuario, 
+                        email,
+                        id_nivel
+                    FROM usuarios
+                    ORDER BY nome_usuario ASC
+                    """
+                )
+                rows = cur.fetchall() or []
             else:
+                # Não há informação de nível: retornar básico e setar nível padrão
                 cur.execute(
                     """
                     SELECT 
@@ -63,7 +112,6 @@ def listar(dominio):
                     """
                 )
                 rows = cur.fetchall() or []
-                # adiciona nivel padrão
                 for r in rows:
                     try:
                         r["nivel"] = "usuario"

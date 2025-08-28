@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import authService from '../services/authService';
-import { AiOutlineEye, AiOutlineEyeInvisible, AiOutlineEdit, AiOutlineDelete, AiOutlinePlus } from 'react-icons/ai';
+import { AiOutlineEye, AiOutlineEyeInvisible, AiOutlineDelete, AiOutlinePlus } from 'react-icons/ai';
 import usuariosService from '../services/usuariosService';
 import niveisService from '../services/niveisService';
 
@@ -44,6 +44,10 @@ const Configuracoes = () => {
   const [usuariosError, setUsuariosError] = useState('');
   const [niveis, setNiveis] = useState([]);
   const [niveisLoading, setNiveisLoading] = useState(false);
+  const [nivelModalOpen, setNivelModalOpen] = useState(false);
+  const [nivelSaving, setNivelSaving] = useState(false);
+  const [nivelEditing, setNivelEditing] = useState(null); // {id, nome}
+  const [nivelNome, setNivelNome] = useState('');
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [userSaving, setUserSaving] = useState(false);
   const [editingUser, setEditingUser] = useState(null); // {id, nome, email}
@@ -76,6 +80,23 @@ const Configuracoes = () => {
       }
     };
     loadUsuarios();
+  }, [tab]);
+
+  // Carregar níveis quando a aba "nível" for aberta diretamente
+  useEffect(() => {
+    const loadNiveis = async () => {
+      if (tab !== 'nivel') return;
+      setNiveisLoading(true);
+      try {
+        const rows = await niveisService.list();
+        setNiveis(rows);
+      } catch (e) {
+        // Silencia erro aqui; ações na UI já tratam erros específicos
+      } finally {
+        setNiveisLoading(false);
+      }
+    };
+    loadNiveis();
   }, [tab]);
 
   return (
@@ -168,9 +189,7 @@ const Configuracoes = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ fontWeight: 700, color: '#111827' }}>{nome}</div>
                           <div style={{ display: 'flex', gap: 8 }}>
-                            <button title="Editar" onClick={() => { setEditingUser({ id, nome: nome, email: u.email || '', nivel: u.nivel || 'usuario' }); setUserNome(nome); setUserEmail(u.email || ''); setUserNivel(u.nivel || 'usuario'); setUserPass(''); setUserPass2(''); setUserModalOpen(true); }} style={{ background: '#f3f4f6', padding: 8, borderRadius: 8 }}>
-                              <AiOutlineEdit />
-                            </button>
+                            <button title="Editar" onClick={() => { setEditingUser({ id, nome: nome, email: u.email || '', nivel: u.nivel || 'usuario' }); setUserNome(nome); setUserEmail(u.email || ''); setUserNivel(u.nivel || 'usuario'); setUserPass(''); setUserPass2(''); setUserModalOpen(true); }} style={{ background: '#f3f4f6', padding: 8, borderRadius: 8 }}>✏️</button>
                             <button title="Excluir" onClick={() => { setDeleteTarget({ id, nome: nome }); setDeleteOpen(true); }} style={{ background: '#fee2e2', color: '#b91c1c', padding: 8, borderRadius: 8 }}>
                               <AiOutlineDelete />
                             </button>
@@ -293,49 +312,56 @@ const Configuracoes = () => {
               <h3 style={{ margin: 0 }}>Níveis de usuário</h3>
               <p style={{ marginTop: 4 }}>Gerencie os perfis de acesso.</p>
             </div>
-            <button onClick={async () => {
-              const nome = prompt('Nome do nível');
-              if (!nome) return;
-              try {
-                await niveisService.create({ nivel: nome });
-                const rows = await niveisService.list();
-                setNiveis(rows);
-              } catch (e) {
-                alert(e.message || 'Erro ao criar nível');
-              }
-            }} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '0.5rem 0.8rem', borderRadius: 8, fontWeight: 600 }}>Novo nível</button>
           </div>
-          <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
-            {niveis.map(n => (
-              <div key={n.id_nivel} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontWeight: 700 }}>{n.nivel}</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={async () => {
-                    const novo = prompt('Renomear nível', n.nivel);
-                    if (!novo) return;
-                    try {
-                      await niveisService.update(n.id_nivel, { nivel: novo });
-                      const rows = await niveisService.list();
-                      setNiveis(rows);
-                    } catch (e) {
-                      alert(e.message || 'Erro ao atualizar nível');
-                    }
-                  }} style={{ background: '#f3f4f6', padding: '6px 10px', borderRadius: 8 }}>Editar</button>
-                  <button onClick={async () => {
-                    if (!window.confirm('Excluir este nível?')) return;
-                    try {
-                      await niveisService.remove(n.id_nivel);
-                      const rows = await niveisService.list();
-                      setNiveis(rows);
-                    } catch (e) {
-                      alert(e.message || 'Erro ao excluir nível');
-                    }
-                  }} style={{ background: '#fee2e2', color: '#b91c1c', padding: '6px 10px', borderRadius: 8 }}>Excluir</button>
+          {niveisLoading ? (
+            <div style={{ marginTop: 12 }}>Carregando...</div>
+          ) : (
+            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+              {niveis.map(n => (
+                <div key={n.id_nivel} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 700 }}>{n.nivel}</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button title="Editar" onClick={() => { setNivelEditing({ id: n.id_nivel, nome: n.nivel }); setNivelNome(n.nivel); setNivelModalOpen(true); }} style={{ background: '#f3f4f6', padding: 8, borderRadius: 8 }}>✏️</button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
+      )}
+
+      {nivelModalOpen && (
+        <div onClick={(e) => { if (e.target === e.currentTarget) setNivelModalOpen(false); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 50 }}>
+          <div style={{ background: 'white', width: '100%', maxWidth: 420, borderRadius: 12, padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <h3 style={{ margin: 0 }}>Editar nível</h3>
+              <button onClick={() => setNivelModalOpen(false)} style={{ background: '#f3f4f6', padding: '6px 10px', borderRadius: 8 }}>Fechar</button>
+            </div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              <label>
+                <div style={{ color: '#374151', fontSize: 14, marginBottom: 6 }}>Nome</div>
+                <input value={nivelNome} onChange={e => setNivelNome(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: 8 }} />
+              </label>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
+                <button onClick={() => setNivelModalOpen(false)} style={{ background: '#f3f4f6', padding: '0.6rem 0.9rem', borderRadius: 8, fontWeight: 600 }}>Cancelar</button>
+                <button onClick={async () => {
+                  if (!nivelEditing) return;
+                  try {
+                    setNivelSaving(true);
+                    await niveisService.update(nivelEditing.id, { nivel: nivelNome });
+                    const rows = await niveisService.list();
+                    setNiveis(rows);
+                    setNivelModalOpen(false);
+                  } catch (e) {
+                    alert(e.message || 'Erro ao salvar nível');
+                  } finally {
+                    setNivelSaving(false);
+                  }
+                }} disabled={nivelSaving} style={{ opacity: nivelSaving ? 0.7 : 1, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '0.6rem 0.9rem', borderRadius: 8, fontWeight: 600 }}>Salvar</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </Container>
   );

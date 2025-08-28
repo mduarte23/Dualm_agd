@@ -54,6 +54,14 @@ const LogoutButton = styled.button`
 const Header = () => {
   const { currentPage, setCurrentPage } = useStackNav();
 
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e?.detail?.page) setCurrentPage(e.detail.page);
+    };
+    window.addEventListener('stacknav:set', handler);
+    return () => window.removeEventListener('stacknav:set', handler);
+  }, [setCurrentPage]);
+
   // Não mostrar o header na página de login
   if (currentPage === 'login') return null;
 

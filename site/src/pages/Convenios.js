@@ -26,6 +26,15 @@ const SearchInput = styled.input`
   min-width: 280px;
 `;
 
+const PrimaryButton = styled.button`
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.6rem 0.9rem;
+  border-radius: 8px;
+  font-weight: 600;
+  white-space: nowrap;
+`;
+
 const CardGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -45,12 +54,20 @@ const Card = styled.div`
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+`;
+
+const CardHeader = styled.div`
+  display: flex;
+  align-items: center;
 `;
 
 const Actions = styled.div`
+  margin-left: auto;
   display: inline-flex;
   gap: 6px;
-  float: right;
 `;
 
 const IconButton = styled.button`
@@ -61,6 +78,27 @@ const IconButton = styled.button`
   font-size: 14px;
   line-height: 1;
   &:hover { background: #e5e7eb; }
+`;
+
+const CardTitle = styled.h3`
+  margin: 0;
+  color: #1f2937;
+  font-size: 1.1rem;
+`;
+
+const ErrorBox = styled.div`
+  background: #fee;
+  color: #c33;
+  padding: 0.8rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  border: 1px solid #fcc;
+`;
+
+const Empty = styled.div`
+  padding: 1rem;
+  color: #6b7280;
 `;
 
 const Convenios = () => {
@@ -101,26 +139,28 @@ const Convenios = () => {
   return (
     <Container>
       <Title>Convênios</Title>
-      {error && <div style={{ background: '#fee', color: '#c33', padding: '8px 10px', borderRadius: 8, marginBottom: 10 }}>{error}</div>}
+      {error && <ErrorBox>{error}</ErrorBox>}
 
       <Controls>
         <SearchInput placeholder="Buscar por nome" value={search} onChange={e => setSearch(e.target.value)} />
-        <button onClick={() => { setNome(''); setEditingId(null); setIsModalOpen(true); }} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '0.6rem 0.9rem', borderRadius: 8, fontWeight: 600 }}>Cadastrar convênio</button>
+        <PrimaryButton onClick={() => { setNome(''); setEditingId(null); setIsModalOpen(true); }}>Cadastrar convênio</PrimaryButton>
       </Controls>
 
       {loading ? (
-        <div>Carregando...</div>
+        <Empty>Carregando...</Empty>
       ) : filtered.length === 0 ? (
-        <div>Nenhum convênio encontrado.</div>
+        <Empty>Nenhum convênio encontrado.</Empty>
       ) : (
         <CardGrid>
           {filtered.map(c => (
             <Card key={c.id_convenio}>
-              <Actions>
-                <IconButton title="Editar" onClick={() => { setNome(c.nome_convenio); setEditingId(c.id_convenio); setIsModalOpen(true); }}>✏️</IconButton>
-                <IconButton title="Excluir" onClick={() => setConfirmDelete({ open: true, item: c, loading: false, error: '' })}>🗑️</IconButton>
-              </Actions>
-              {c.nome_convenio}
+              <CardHeader>
+                <CardTitle>{c.nome_convenio}</CardTitle>
+                <Actions>
+                  <IconButton title="Editar" onClick={() => { setNome(c.nome_convenio); setEditingId(c.id_convenio); setIsModalOpen(true); }}>✏️</IconButton>
+                  <IconButton title="Excluir" onClick={() => setConfirmDelete({ open: true, item: c, loading: false, error: '' })}>🗑️</IconButton>
+                </Actions>
+              </CardHeader>
             </Card>
           ))}
         </CardGrid>

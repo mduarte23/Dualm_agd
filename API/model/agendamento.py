@@ -1,65 +1,89 @@
 from model.db_config import conexao
+from model.login import busca_ip
 from datetime import datetime
 import json
 
 def agendamento(id_cliente, id_especialista, data, horario, dominio):
 
-    convenio, id_convenio = info_cliente(id_cliente, dominio)
-    especialista, convenio_especialista, tempo_consulta = info_especialista(id_especialista, dominio)
+    # Lê informações do cliente e especialista
+    cliente_tem_convenio, id_convenio_cliente = info_cliente(id_cliente, dominio)
+    especialista, convenios_especialista, tempo_consulta = info_especialista(id_especialista, dominio)
 
-    if convenio is True and especialista:
-        aceita_convenio = False
-        if convenio_especialista:
-            try:
-                aceita_convenio = any(
-                    (row.get("id_convenio") == id_convenio) for row in convenio_especialista
-                )
-            except Exception:
-                aceita_convenio = False
+    # Trava: não permitir agendar em datas passadas
+    try:
+        if dif_datas(data) < 0:
+            return {"success": False, "message": "Não é permitido agendar em datas passadas"}
+    except Exception:
+        # Em caso de data inválida, falhar também
+        return {"success": False, "message": "Data inválida para agendamento"}
 
-        if aceita_convenio:
-            # Evita agendamento duplicado no mesmo horário para o mesmo especialista
-            if not horario_disponivel(id_especialista, data, horario, dominio):
-                return {
-                    "success": False,
-                    "message": "Horário já ocupado para este especialista"
-                }
-            max_consulta, antecedencia = info_gerencia_agenda(id_especialista, id_convenio, dominio)
-            qtd_agenda = info_agenda(id_especialista, id_convenio, data, dominio)
-            dif_data = dif_datas(data)
+    # Regra: só permitir agendamento em dias/horários de atendimento do especialista
+    if not medico_atende_no_horario(id_especialista, data, horario, tempo_consulta, dominio):
+        return {
+            "success": False,
+            "message": "Especialista não atende neste dia/horário"
+        }
 
-            if qtd_agenda < max_consulta and dif_data >= antecedencia:
-                agendamento = realiza_agendamento(id_cliente, id_especialista, data, horario, tempo_consulta, id_convenio, dominio)
-                return {"success": True, "message": "Agendamento realizado com sucesso"}
-            else:
-                sugestoes = sugerir_horarios_ia(
-                    id_especialista=id_especialista,
-                    id_convenio=id_convenio,
-                    data_str=data,
-                    horario_str=horario,
-                    dominio=dominio,
-                    antecedencia_dias=antecedencia,
-                    max_consulta=max_consulta,
-                    tempo_consulta_min=tempo_consulta,
-                    k=3
-                )
-                return {
-                    "success": False,
-                    "message": "Especialista não tem mais vagas ou a data é menor que a antecedência.",
-                    "sugestoes": sugestoes
-                }
+    # Primeiro, evita conflito para o mesmo cliente no mesmo dia/horário
+    # (mesmo que seja outro médico)
+    if not horario_cliente_disponivel(id_cliente, data, horario, tempo_consulta, dominio):
+        return {
+            "success": False,
+            "message": "Cliente já possui agendamento neste horário"
+        }
+    # Em seguida, evita conflito do mesmo especialista no mesmo horário
+    if not horario_disponivel(id_especialista, data, horario, tempo_consulta, dominio):
+        return {
+            "success": False,
+            "message": "Horário já ocupado para este especialista"
+        }
 
+    # Se o cliente possui convênio e o especialista aceita este convênio,
+    # aplicamos as regras de gerência (máximo por dia/antecedência)
+    aceita_convenio = False
+    if cliente_tem_convenio and convenios_especialista:
+        try:
+            aceita_convenio = any(
+                (row.get("id_convenio") == id_convenio_cliente) for row in convenios_especialista
+            )
+        except Exception:
+            aceita_convenio = False
 
+    if cliente_tem_convenio and aceita_convenio:
+        max_consulta, antecedencia = info_gerencia_agenda(id_especialista, id_convenio_cliente, dominio)
+        qtd_agenda = info_agenda(id_especialista, id_convenio_cliente, data, dominio)
+        dif_data = dif_datas(data)
+
+        if qtd_agenda < max_consulta and dif_data >= antecedencia:
+            realiza_agendamento(id_cliente, id_especialista, data, horario, tempo_consulta, id_convenio_cliente, dominio)
+            return {"success": True, "message": "Agendamento realizado com sucesso"}
         else:
-            return {"success": False, "message": "Especialista não aceita o convenio"}
-    else:
-        return {"success": False, "message": "Cliente não possui o convenio"}
+            sugestoes = sugerir_horarios_ia(
+                id_especialista=id_especialista,
+                id_convenio=id_convenio_cliente,
+                data_str=data,
+                horario_str=horario,
+                dominio=dominio,
+                antecedencia_dias=antecedencia,
+                max_consulta=max_consulta,
+                tempo_consulta_min=tempo_consulta,
+                k=3
+            )
+            return {
+                "success": False,
+                "message": "Especialista não tem mais vagas ou a data é menor que a antecedência.",
+                "sugestoes": sugestoes
+            }
 
-    pass
+    # Caso contrário (sem convênio ou convênio não aceito), permite agendar sem convênio
+    realiza_agendamento(id_cliente, id_especialista, data, horario, tempo_consulta, None, dominio)
+    return {"success": True, "message": "Agendamento realizado com sucesso (sem convênio)"}
 
 
 def info_cliente(id_cliente, dominio):
-    conn_info = conexao(dominio)
+    ip = busca_ip(dominio) if dominio else None
+    alvo = ip or dominio
+    conn_info = conexao(alvo)
     if not conn_info["success"]:
         # Mantém contrato: retorna (convenio_bool, id_convenio or None)
         return False, None
@@ -92,7 +116,9 @@ def info_cliente(id_cliente, dominio):
 
 
 def info_especialista(id_especialista, dominio):
-    conn_info = conexao(dominio)
+    ip = busca_ip(dominio) if dominio else None
+    alvo = ip or dominio
+    conn_info = conexao(alvo)
     if not conn_info["success"]:
         # Retorna tupla consistente para evitar exceptions no chamador
         return {}, False, None
@@ -125,7 +151,9 @@ def info_especialista(id_especialista, dominio):
 
 
 def info_gerencia_agenda(id_especialista, id_convenio, dominio):
-    conn_info = conexao(dominio)
+    ip = busca_ip(dominio) if dominio else None
+    alvo = ip or dominio
+    conn_info = conexao(alvo)
     if not conn_info["success"]:
         return {"success": False, "message": conn_info.get("message", "Erro na conexão")}
     
@@ -148,7 +176,9 @@ def info_gerencia_agenda(id_especialista, id_convenio, dominio):
     return max_consulta, antecedencia
 
 def info_agenda(id_especialista, id_convenio, data, dominio):
-    conn_info = conexao(dominio)
+    ip = busca_ip(dominio) if dominio else None
+    alvo = ip or dominio
+    conn_info = conexao(alvo)
     if not conn_info["success"]:
         return {"success": False, "message": conn_info.get("message", "Erro na conexão")}
     
@@ -167,7 +197,9 @@ def dif_datas(data_agendamento):
 
 
 def realiza_agendamento(id_cliente, id_especialista, data, horario, tempo_consulta, id_convenio, dominio):
-    conn_info = conexao(dominio)
+    ip = busca_ip(dominio) if dominio else None
+    alvo = ip or dominio
+    conn_info = conexao(alvo)
     if not conn_info["success"]:
         return {"success": False, "message": conn_info.get("message", "Erro na conexão")}
     
@@ -242,6 +274,46 @@ def _grade_horaria_especialista(conn, id_especialista, data_referencia=None):
     except Exception as e:
         print("Erro ao parsear horario_atendimento:", e)
         return [(time(8, 0), time(12, 0)), (time(13, 30), time(17, 30))]
+
+
+def medico_atende_no_horario(id_especialista, data_str, horario_str, duracao_min, dominio):
+    """
+    Verifica se o horário solicitado cai dentro das janelas de atendimento do especialista
+    naquele dia específico, considerando a duração.
+    """
+    ip = busca_ip(dominio) if dominio else None
+    alvo = ip or dominio
+    info = conexao(alvo)
+    if not info.get("success"):
+        return False
+    conn = info["connection"]
+    try:
+        # Converter strings para objetos
+        data_dt = datetime.strptime(data_str, "%Y-%m-%d")
+        try:
+            h_parts = [int(p) for p in horario_str.split(":")[:2]]
+            inicio_dt = datetime.combine(data_dt.date(), time(h_parts[0], h_parts[1]))
+        except Exception:
+            inicio_dt = datetime.combine(data_dt.date(), time(9, 0))
+        fim_dt = inicio_dt + timedelta(minutes=int(duracao_min or 0))
+
+        janelas = _grade_horaria_especialista(conn, id_especialista, data_referencia=data_dt)
+        if not janelas:
+            return False
+        # Verifica se o intervalo solicitado está contido em alguma janela do dia
+        for j_inicio, j_fim in janelas:
+            janela_ini = datetime.combine(data_dt.date(), j_inicio)
+            janela_fim = datetime.combine(data_dt.date(), j_fim)
+            if inicio_dt >= janela_ini and fim_dt <= janela_fim:
+                return True
+        return False
+    except Exception:
+        return False
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 def _gerar_slots(data_dt, duracao_min, conn, id_especialista, janelas=None):
     """
@@ -404,11 +476,55 @@ def sugerir_horarios_ia(id_especialista, id_convenio, data_str, horario_str, dom
     return sugestoes
 
 
-def horario_disponivel(id_especialista, data, horario, dominio):
+def horario_disponivel(id_especialista, data, horario, duracao_min, dominio):
     """
     Retorna True se não existir agendamento para o especialista na mesma data e horário.
     """
-    conn_info = conexao(dominio)
+    ip = busca_ip(dominio) if dominio else None
+    alvo = ip or dominio
+    conn_info = conexao(alvo)
+    if not conn_info["success"]:
+        # Se não foi possível checar, por segurança considera indisponível
+        return False
+
+
+def horario_cliente_disponivel(id_cliente, data, horario, duracao_min, dominio):
+    """
+    Retorna True se o cliente NÃO possuir outro agendamento na mesma data e horário
+    (independente do especialista).
+    """
+    ip = busca_ip(dominio) if dominio else None
+    alvo = ip or dominio
+    conn_info = conexao(alvo)
+    if not conn_info["success"]:
+        return False
+    conn = conn_info["connection"]
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT 1
+            FROM agendamento
+            WHERE id_cliente = %s
+              AND data_agendamento::date = %s::date
+              AND (horario, horario + make_interval(0,0,0,0,0, duracao, 0))
+                  OVERLAPS (%s::time, %s::time + make_interval(0,0,0,0,0, %s, 0))
+            LIMIT 1
+            """,
+            (id_cliente, data, horario, horario, int(duracao_min or 0)),
+        )
+        row = cur.fetchone()
+        return row is None
+    except Exception:
+        return False
+
+def horario_disponivel(id_especialista, data, horario, duracao_min, dominio):
+    """
+    Retorna True se não existir agendamento para o especialista na mesma data e horário.
+    """
+    ip = busca_ip(dominio) if dominio else None
+    alvo = ip or dominio
+    conn_info = conexao(alvo)
     if not conn_info["success"]:
         # Se não foi possível checar, por segurança considera indisponível
         return False
@@ -420,13 +536,155 @@ def horario_disponivel(id_especialista, data, horario, dominio):
             SELECT 1
             FROM agendamento
             WHERE id_especialista = %s
-              AND data_agendamento = %s
-              AND horario = %s
+              AND data_agendamento::date = %s::date
+              AND (horario, horario + make_interval(0,0,0,0,0, duracao, 0))
+                  OVERLAPS (%s::time, %s::time + make_interval(0,0,0,0,0, %s, 0))
             LIMIT 1
             """,
-            (id_especialista, data, horario),
+            (id_especialista, data, horario, horario, int(duracao_min or 0)),
         )
         row = cur.fetchone()
         return row is None
     except Exception:
         return False
+
+
+def listar_agendamentos(dominio):
+    ip = busca_ip(dominio) if dominio else None
+    alvo = ip or dominio
+    conn_info = conexao(alvo)
+    if not conn_info["success"]:
+        return {"success": False, "message": conn_info.get("message", "Erro na conexão")}
+    conn = conn_info["connection"]
+    try:
+        def _has_table(conn, table_name):
+            try:
+                with conn.cursor() as _c:
+                    _c.execute("SELECT 1 FROM information_schema.tables WHERE table_name=%s LIMIT 1", (table_name,))
+                    return _c.fetchone() is not None
+            except Exception:
+                return False
+
+        cur = conn.cursor()
+        # Versão simples e estável: lista agendamentos com nome do especialista
+        cur.execute(
+            """
+            SELECT a.id_agendamento, a.id_especialista, a.id_cliente, a.data_agendamento, a.horario, a.duracao,
+                   e.nome_especialista, e.cor
+            FROM agendamento a
+            LEFT JOIN especialistas e ON e.id_especialista = a.id_especialista
+            ORDER BY a.data_agendamento ASC, a.horario ASC
+            """
+        )
+        rows = cur.fetchall() or []
+        ags = []
+        for r in rows:
+            is_dict = isinstance(r, dict)
+            id_ag = r["id_agendamento"] if is_dict else r[0]
+            id_esp = r["id_especialista"] if is_dict else r[1]
+            id_cli = r["id_cliente"] if is_dict else r[2]
+            data_val = r["data_agendamento"] if is_dict else r[3]
+            hora_val = r["horario"] if is_dict else r[4]
+            dur = r["duracao"] if is_dict else r[5]
+            nome_esp = r.get("nome_especialista") if is_dict else r[6]
+            cor = r.get("cor") if is_dict else r[7]
+
+            # normalizações
+            try:
+                # date/datetime -> ISO (YYYY-MM-DD)
+                if hasattr(data_val, "isoformat"):
+                    data_str = data_val.isoformat()
+                else:
+                    data_str = str(data_val)
+            except Exception:
+                data_str = str(data_val)
+
+            try:
+                # time/datetime -> HH:MM
+                if hasattr(hora_val, "strftime"):
+                    hora_str = hora_val.strftime("%H:%M")
+                else:
+                    hora_str = str(hora_val)[:5]
+            except Exception:
+                hora_str = str(hora_val)[:5]
+
+            ags.append({
+                "id_agendamento": id_ag,
+                "id_especialista": id_esp,
+                "id_cliente": id_cli,
+                "data_agendamento": data_str,
+                "horario": hora_str,
+                "duracao": dur,
+                "nome_especialista": nome_esp,
+                "cor": cor,
+            })
+        return {"success": True, "agendamentos": ags}
+    except Exception as e:
+        try:
+            print("Erro ao listar agendamentos:", e)
+        except Exception:
+            pass
+        # Fallback: não derruba a listagem; retorna vazio para não quebrar o frontend
+        return {"success": True, "agendamentos": []}
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
+def atualizar_agendamento(id_agendamento, id_cliente, id_especialista, data, horario, dominio):
+    ip = busca_ip(dominio) if dominio else None
+    alvo = ip or dominio
+    conn_info = conexao(alvo)
+    if not conn_info["success"]:
+        return {"success": False, "message": conn_info.get("message", "Erro na conexão")}
+    conn = conn_info["connection"]
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE agendamento
+               SET id_cliente = COALESCE(%s, id_cliente),
+                   id_especialista = COALESCE(%s, id_especialista),
+                   data_agendamento = COALESCE(%s, data_agendamento),
+                   horario = COALESCE(%s, horario)
+             WHERE id_agendamento = %s
+            RETURNING id_agendamento
+            """,
+            (id_cliente, id_especialista, data, horario, id_agendamento)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        if not row:
+            return {"success": False, "message": "Agendamento não encontrado"}
+        return {"success": True}
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return {"success": False, "message": f"Erro ao atualizar agendamento: {e}"}
+
+
+def remover_agendamento(id_agendamento, dominio):
+    ip = busca_ip(dominio) if dominio else None
+    alvo = ip or dominio
+    conn_info = conexao(alvo)
+    if not conn_info["success"]:
+        return {"success": False, "message": conn_info.get("message", "Erro na conexão")}
+    conn = conn_info["connection"]
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM agendamento WHERE id_agendamento = %s RETURNING id_agendamento", (id_agendamento,))
+        row = cur.fetchone()
+        conn.commit()
+        if not row:
+            return {"success": False, "message": "Agendamento não encontrado"}
+        return {"success": True}
+    except Exception as e:
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return {"success": False, "message": f"Erro ao remover agendamento: {e}"}

@@ -556,40 +556,6 @@ const Especialistas = () => {
                   <IconButton title="Excluir" onClick={() => handleDelete(e)}>🗑️</IconButton>
                 </Actions>
               </CardHeader>
-              <CardDesc>{e.descricao || 'Sem descrição'}</CardDesc>
-              <MetaRow>
-                <MetaItem style={{ gridColumn: '1 / -1' }}>
-                  <MetaLabel>Horários: </MetaLabel>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 6, marginTop: 6 }}>
-                    {getScheduleLines(e.horario_atendimento).length === 0 ? (
-                      <span style={{ color: '#6b7280' }}>Não informado</span>
-                    ) : (
-                      getScheduleLines(e.horario_atendimento).map((ln, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: 6 }}>
-                          <span style={{ width: 42, color: '#6b7280' }}>{ln.label}</span>
-                          <span>{ln.value}</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </MetaItem>
-                <MetaItem>
-                  <MetaLabel>Valor: </MetaLabel>
-                  {formatBRLDisplay(e.valor_consulta)}
-                </MetaItem>
-                <MetaItem>
-                  <MetaLabel>Convênio: </MetaLabel>
-                  <Badge $ok={e.aceita_convenio === true}>{e.aceita_convenio ? 'Sim' : 'Não'}</Badge>
-                </MetaItem>
-                <MetaItem>
-                  <MetaLabel>Duração: </MetaLabel>
-                  {e.tempo_consulta ? `${e.tempo_consulta} min` : '-'}
-                </MetaItem>
-                <MetaItem>
-                  <MetaLabel>Ger. agenda: </MetaLabel>
-                  <Badge $ok={e.gerenciar_agenda === true}>{e.gerenciar_agenda ? 'Ativo' : 'Inativo'}</Badge>
-                </MetaItem>
-              </MetaRow>
             </Card>
           ))}
         </CardGrid>

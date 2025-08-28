@@ -80,6 +80,38 @@ class AuthService {
     localStorage.setItem('userInfo', JSON.stringify(updated));
     return { success: true, user: updated };
   }
+
+  async forgotPassword(domain, email) {
+    const response = await axios.post(`${API_BASE_URL}/login/esqueci`, {
+      dominio: domain,
+      email
+    });
+    const data = response.data || {};
+    if (!data.success) throw new Error(data.message || 'Erro ao solicitar redefinição');
+    return data;
+  }
+
+  async resetPassword(token, password) {
+    const response = await axios.post(`${API_BASE_URL}/login/redefinir`, {
+      token,
+      senha: password,
+    });
+    const data = response.data || {};
+    if (!data.success) throw new Error(data.message || 'Erro ao redefinir senha');
+    return data;
+  }
+
+  async resetPasswordWithCode(domain, email, code, password) {
+    const response = await axios.post(`${API_BASE_URL}/login/redefinir-codigo`, {
+      dominio: domain,
+      email,
+      codigo: code,
+      senha: password,
+    });
+    const data = response.data || {};
+    if (!data.success) throw new Error(data.message || 'Erro ao redefinir senha');
+    return data;
+  }
 }
 
 const authService = new AuthService();
