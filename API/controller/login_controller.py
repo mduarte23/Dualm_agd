@@ -13,6 +13,7 @@ import random
 # Chave: f"{dominio}|{email}" -> { 'code': '123456', 'expires_at': datetime }
 _reset_codes = {}
 from model.login import login as login_service
+from model.auth import create_token, verify_token as verify_token_util
 
 
 login_bp = Blueprint("login", __name__)
@@ -33,12 +34,25 @@ def login_route():
         }), 400
 
     result = login_service(dominio, email, senha)
-    status_code = 200 if result.get('success') else 401
-    return jsonify(result), status_code
+    if not result.get('success'):
+        return jsonify(result), 401
+
+    usuario = result.get('usuario') or {}
+    # Monta payload mínimo no token
+    payload = {
+        'dominio': dominio,
+        'user_id': usuario.get('id_usuario') or usuario.get('id') or usuario.get('idusuario'),
+        'email': usuario.get('email'),
+        'nome': usuario.get('nome_usuario') or usuario.get('nome')
+    }
+    token = create_token(payload)
+    result['token'] = token
+    return jsonify(result), 200
 
 
 def verify_token(token: str, secret: str):
-    return False, 'JWT desabilitado'
+    ok, payload, err = verify_token_util(token)
+    return ok, err or ''
 
 
 @login_bp.route("/login/esqueci", methods=["POST"])

@@ -23,8 +23,8 @@ export function installAxiosAuthInterceptor() {
       const token = localStorage.getItem('authToken');
       if (token) {
         config.headers = config.headers || {};
-        delete config.headers['Authorization'];
-        delete config.headers['X-Auth-Token'];
+        config.headers['Authorization'] = `Bearer ${token}`;
+        config.headers['X-Auth-Token'] = token;
       }
     } catch {}
     return config;

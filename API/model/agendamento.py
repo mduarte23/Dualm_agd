@@ -3,7 +3,7 @@ from model.login import busca_ip
 from datetime import datetime
 import json
 
-def agendamento(id_cliente, id_especialista, data, horario, dominio):
+def agendamento(id_cliente, id_especialista, data, horario, dominio, ignorar_limite=False):
 
     # Lê informações do cliente e especialista
     cliente_tem_convenio, id_convenio_cliente = info_cliente(id_cliente, dominio)
@@ -54,10 +54,8 @@ def agendamento(id_cliente, id_especialista, data, horario, dominio):
         qtd_agenda = info_agenda(id_especialista, id_convenio_cliente, data, dominio)
         dif_data = dif_datas(data)
 
-        if qtd_agenda < max_consulta and dif_data >= antecedencia:
-            realiza_agendamento(id_cliente, id_especialista, data, horario, tempo_consulta, id_convenio_cliente, dominio)
-            return {"success": True, "message": "Agendamento realizado com sucesso"}
-        else:
+        # Verifica antecedência mínima (não pode ser ignorada por padrão)
+        if dif_data < antecedencia:
             sugestoes = sugerir_horarios_ia(
                 id_especialista=id_especialista,
                 id_convenio=id_convenio_cliente,
@@ -71,9 +69,29 @@ def agendamento(id_cliente, id_especialista, data, horario, dominio):
             )
             return {
                 "success": False,
-                "message": "Especialista não tem mais vagas ou a data é menor que a antecedência.",
+                "code": "ANTECEDENCIA_INSUFICIENTE",
+                "message": "A data selecionada não respeita a antecedência mínima para este convênio.",
                 "sugestoes": sugestoes
             }
+
+        # Limite por convênio atingido
+        if max_consulta and qtd_agenda >= max_consulta:
+            if ignorar_limite:
+                realiza_agendamento(id_cliente, id_especialista, data, horario, tempo_consulta, id_convenio_cliente, dominio)
+                return {"success": True, "message": "Agendamento realizado (limite por convênio excedido)", "warning": "Limite excedido"}
+            else:
+                return {
+                    "success": False,
+                    "code": "LIMITE_CONVENIO",
+                    "message": "Limite de agendamentos por convênio atingido para este dia. Deseja continuar mesmo assim?",
+                    "can_override": True,
+                    "limite": int(max_consulta),
+                    "qtd_atual": int(qtd_agenda)
+                }
+
+        # Caso dentro das regras, realiza normalmente
+        realiza_agendamento(id_cliente, id_especialista, data, horario, tempo_consulta, id_convenio_cliente, dominio)
+        return {"success": True, "message": "Agendamento realizado com sucesso"}
 
     # Caso contrário (sem convênio ou convênio não aceito), permite agendar sem convênio
     realiza_agendamento(id_cliente, id_especialista, data, horario, tempo_consulta, None, dominio)

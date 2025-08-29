@@ -49,6 +49,7 @@ def criar_agendamento():
         data=data["data"],
         horario=data["horario"],
         dominio=data["dominio"],
+        ignorar_limite=bool(data.get("ignorar_limite"))
     )
 
     status_code = 200 if result.get("success") else 400

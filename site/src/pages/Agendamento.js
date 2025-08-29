@@ -190,6 +190,7 @@ const Agendamento = () => {
   const [specSearch, setSpecSearch] = useState('');
   const [specOpen, setSpecOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState({ open: false, loading: false, error: '' });
+  const [confirmOverride, setConfirmOverride] = useState({ open: false, loading: false, message: '', limite: null, qtd_atual: null, payload: null });
 
   useEffect(() => {
     const load = async () => {
@@ -497,13 +498,14 @@ const Agendamento = () => {
                         horario: createForm.horario,
                       });
                     } else {
-                      await axios.post(`${API_BASE_URL}/agendamentos`, {
+                      const payload = {
                         dominio,
                         id_cliente: Number(createForm.id_cliente),
                         id_especialista: Number(createForm.id_especialista),
                         data: createForm.data,
                         horario: createForm.horario,
-                      });
+                      };
+                      await axios.post(`${API_BASE_URL}/agendamentos`, payload);
                     }
                     // reload
                     const res = await axios.get(`${API_BASE_URL}/agendamentos`, { params: { dominio } });
@@ -512,7 +514,30 @@ const Agendamento = () => {
                     setCreateOpen(false);
                     setEditingAgId(null);
                   } catch (err) {
-                    setCreateError(err.response?.data?.message || err.message || 'Erro ao criar agendamento');
+                    const data = err?.response?.data || {};
+                    if (!editingAgId && data?.code === 'LIMITE_CONVENIO') {
+                      // Abrir confirmação para exceder limite
+                      const dominio = authService.getCurrentClient()?.dominio;
+                      const payload = {
+                        dominio,
+                        id_cliente: Number(createForm.id_cliente),
+                        id_especialista: Number(createForm.id_especialista),
+                        data: createForm.data,
+                        horario: createForm.horario,
+                      };
+                      setConfirmOverride({
+                        open: true,
+                        loading: false,
+                        message: data?.message || 'Limite de agendamentos por convênio atingido para este dia. Deseja continuar mesmo assim?',
+                        limite: data?.limite ?? null,
+                        qtd_atual: data?.qtd_atual ?? null,
+                        payload,
+                      });
+                    } else if (data?.code === 'ANTECEDENCIA_INSUFICIENTE') {
+                      setCreateError(data?.message || 'A data selecionada não respeita a antecedência mínima.');
+                    } else {
+                      setCreateError(data?.message || err.message || 'Erro ao criar agendamento');
+                    }
                   } finally {
                     setCreateSaving(false);
                   }
@@ -562,6 +587,42 @@ const Agendamento = () => {
                   setConfirmDelete(prev => ({ ...prev, loading: false, error: err.response?.data?.message || err.message || 'Erro ao excluir agendamento' }));
                 }
               }} style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}>{confirmDelete.loading ? 'Excluindo...' : 'Excluir'}</PrimaryButton>
+            </div>
+          </ModalCard>
+        </ModalOverlay>
+      )}
+
+      {confirmOverride.open && (
+        <ModalOverlay onClick={(e) => { if (e.target === e.currentTarget) setConfirmOverride({ open: false, loading: false, message: '', limite: null, qtd_atual: null, payload: null }); }}>
+          <ModalCard>
+            <h3 style={{ marginTop: 0 }}>Limite por convênio atingido</h3>
+            <p style={{ color: '#374151' }}>{confirmOverride.message}</p>
+            {(confirmOverride.limite != null && confirmOverride.qtd_atual != null) && (
+              <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                <div style={{ color: '#6b7280', fontSize: 13 }}>Limite diário: <b>{String(confirmOverride.limite)}</b></div>
+                <div style={{ color: '#6b7280', fontSize: 13 }}>Agendados no dia: <b>{String(confirmOverride.qtd_atual)}</b></div>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <Button onClick={() => setConfirmOverride({ open: false, loading: false, message: '', limite: null, qtd_atual: null, payload: null })}>Cancelar</Button>
+              <PrimaryButton onClick={async () => {
+                if (!confirmOverride.payload) { setConfirmOverride({ open: false, loading: false, message: '', limite: null, qtd_atual: null, payload: null }); return; }
+                setConfirmOverride(prev => ({ ...prev, loading: true }));
+                try {
+                  const payload = { ...confirmOverride.payload, ignorar_limite: true };
+                  await axios.post(`${API_BASE_URL}/agendamentos`, payload);
+                  const dominio = authService.getCurrentClient()?.dominio;
+                  const res = await axios.get(`${API_BASE_URL}/agendamentos`, { params: { dominio } });
+                  const data = res.data || {};
+                  setItems(Array.isArray(data.agendamentos) ? data.agendamentos : []);
+                  setConfirmOverride({ open: false, loading: false, message: '', limite: null, qtd_atual: null, payload: null });
+                  setCreateOpen(false);
+                  setEditingAgId(null);
+                } catch (err) {
+                  // falha ao confirmar
+                  setConfirmOverride(prev => ({ ...prev, loading: false }));
+                }
+              }}>{confirmOverride.loading ? 'Confirmando...' : 'Continuar mesmo assim'}</PrimaryButton>
             </div>
           </ModalCard>
         </ModalOverlay>
