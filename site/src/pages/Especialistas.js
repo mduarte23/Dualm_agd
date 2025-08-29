@@ -29,7 +29,7 @@ const SearchInput = styled.input`
 `;
 
 const PrimaryButton = styled.button`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-accent-2) 100%);
   color: white;
   padding: 0.6rem 0.9rem;
   border-radius: 8px;
@@ -841,6 +841,11 @@ const Especialistas = () => {
           <ModalCard>
             <ModalTitle>Gerenciar agenda por convênio</ModalTitle>
             <div style={{ display: 'grid', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 140px', gap: 8, alignItems: 'center', color: '#6b7280', fontSize: 12, padding: '0 2px' }}>
+                <div style={{ fontWeight: 600, color: '#374151', fontSize: 13 }}>Convênio</div>
+                <div>Máximo de consultas por dia</div>
+                <div>Dias de antecedência</div>
+              </div>
               {convenios.filter(cv => selectedConvenios.includes(cv.id_convenio)).map(cv => (
                 <div key={cv.id_convenio} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 140px', gap: 8, alignItems: 'center' }}>
                   <div>{cv.nome_convenio}</div>

@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory
+from flask import Flask
 import os
 from flask_cors import CORS 
 from controller.login_controller import login_bp
@@ -14,6 +14,7 @@ from controller.cliente_controller import cliente_bp
 
 app = Flask(__name__)
 
+# CORS simples (sem JWT)
 CORS(app)
 
 # Configurações de e-mail para recuperação de senha

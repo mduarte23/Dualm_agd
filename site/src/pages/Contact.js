@@ -25,7 +25,7 @@ const ContactSubtitle = styled.p`
 `;
 
 const ContactForm = styled.form`
-  background: white;
+  background: var(--surface-bg);
   padding: 2rem;
   border-radius: 15px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
@@ -73,7 +73,7 @@ const TextArea = styled.textarea`
 `;
 
 const SubmitButton = styled.button`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-accent-2) 100%);
   color: white;
   padding: 1rem 2rem;
   border-radius: 8px;

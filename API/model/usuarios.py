@@ -127,7 +127,7 @@ def listar(dominio):
             pass
 
 
-def criar(dominio, nome_usuario, email, senha, nivel='usuario'):
+def criar(dominio, nome_usuario, email, senha, nivel='usuario', id_especialista=None):
     if not dominio:
         return {"success": False, "message": "Parâmetro 'dominio' é obrigatório"}
     if not nome_usuario or not email or not senha:
@@ -153,32 +153,62 @@ def criar(dominio, nome_usuario, email, senha, nivel='usuario'):
                         id_nivel = int(nivel) if nivel is not None else None
                     except Exception:
                         id_nivel = None
+                    if _has_column(conn, 'usuarios', 'id_especialista'):
+                        cur.execute(
+                            """
+                            INSERT INTO usuarios (nome_usuario, email, senha, id_nivel, id_especialista)
+                            VALUES (%s, %s, %s, %s, %s)
+                            RETURNING id_usuario, nome_usuario, email, id_nivel, id_especialista
+                            """,
+                            (nome_usuario, email, senha_hash, id_nivel, id_especialista)
+                        )
+                    else:
+                        cur.execute(
+                            """
+                            INSERT INTO usuarios (nome_usuario, email, senha, id_nivel)
+                            VALUES (%s, %s, %s, %s)
+                            RETURNING id_usuario, nome_usuario, email, id_nivel
+                            """,
+                            (nome_usuario, email, senha_hash, id_nivel)
+                        )
+                else:
+                    if _has_column(conn, 'usuarios', 'id_especialista'):
+                        cur.execute(
+                            """
+                            INSERT INTO usuarios (nome_usuario, email, senha, nivel, id_especialista)
+                            VALUES (%s, %s, %s, COALESCE(%s, 'usuario'), %s)
+                            RETURNING id_usuario, nome_usuario, email, COALESCE(nivel, 'usuario') AS nivel, id_especialista
+                            """,
+                            (nome_usuario, email, senha_hash, nivel, id_especialista)
+                        )
+                    else:
+                        cur.execute(
+                            """
+                            INSERT INTO usuarios (nome_usuario, email, senha, nivel)
+                            VALUES (%s, %s, %s, COALESCE(%s, 'usuario'))
+                            RETURNING id_usuario, nome_usuario, email, COALESCE(nivel, 'usuario') AS nivel
+                            """,
+                            (nome_usuario, email, senha_hash, nivel)
+                        )
+            else:
+                if _has_column(conn, 'usuarios', 'id_especialista'):
                     cur.execute(
                         """
-                        INSERT INTO usuarios (nome_usuario, email, senha, id_nivel)
+                        INSERT INTO usuarios (nome_usuario, email, senha, id_especialista)
                         VALUES (%s, %s, %s, %s)
-                        RETURNING id_usuario, nome_usuario, email, id_nivel
+                        RETURNING id_usuario, nome_usuario, email, id_especialista
                         """,
-                        (nome_usuario, email, senha_hash, id_nivel)
+                        (nome_usuario, email, senha_hash, id_especialista)
                     )
                 else:
                     cur.execute(
                         """
-                        INSERT INTO usuarios (nome_usuario, email, senha, nivel)
-                        VALUES (%s, %s, %s, COALESCE(%s, 'usuario'))
-                        RETURNING id_usuario, nome_usuario, email, COALESCE(nivel, 'usuario') AS nivel
+                        INSERT INTO usuarios (nome_usuario, email, senha)
+                        VALUES (%s, %s, %s)
+                        RETURNING id_usuario, nome_usuario, email
                         """,
-                        (nome_usuario, email, senha_hash, nivel)
+                        (nome_usuario, email, senha_hash)
                     )
-            else:
-                cur.execute(
-                    """
-                    INSERT INTO usuarios (nome_usuario, email, senha)
-                    VALUES (%s, %s, %s)
-                    RETURNING id_usuario, nome_usuario, email
-                    """,
-                    (nome_usuario, email, senha_hash)
-                )
             novo = cur.fetchone()
         conn.commit()
         return {"success": True, "usuario": novo}
@@ -195,7 +225,7 @@ def criar(dominio, nome_usuario, email, senha, nivel='usuario'):
             pass
 
 
-def atualizar(dominio, id_usuario, nome_usuario=None, email=None, senha=None, nivel=None):
+def atualizar(dominio, id_usuario, nome_usuario=None, email=None, senha=None, nivel=None, id_especialista=None):
     if not dominio:
         return {"success": False, "message": "Parâmetro 'dominio' é obrigatório"}
     if not id_usuario:
@@ -234,6 +264,13 @@ def atualizar(dominio, id_usuario, nome_usuario=None, email=None, senha=None, ni
             else:
                 campos.append("nivel = %s")
                 valores.append(nivel)
+
+        if _has_column(conn, 'usuarios', 'id_especialista') and (id_especialista is not None):
+            campos.append("id_especialista = %s")
+            try:
+                valores.append(int(id_especialista) if id_especialista is not None else None)
+            except Exception:
+                valores.append(None)
 
         if not campos:
             return {"success": False, "message": "Nenhum campo para atualizar"}

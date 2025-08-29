@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import authService from '../services/authService';
+import ToggleSwitch from '../components/ToggleSwitch';
+import { useThemeCustom } from '../contexts/ThemeContext';
 import { AiOutlineEye, AiOutlineEyeInvisible, AiOutlineDelete, AiOutlinePlus } from 'react-icons/ai';
 import usuariosService from '../services/usuariosService';
 import niveisService from '../services/niveisService';
+import especialistasService from '../services/especialistasService';
 
 const Container = styled.div`
   padding: 1rem 0;
@@ -29,7 +32,7 @@ const TabButton = styled.button`
 `;
 
 const Card = styled.div`
-  background: white;
+  background: var(--surface-bg);
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
@@ -38,12 +41,14 @@ const Card = styled.div`
 const Configuracoes = () => {
   const [tab, setTab] = useState('contas'); // 'contas' | 'usuarios' | 'nivel'
   const [showPass, setShowPass] = useState(false);
+  const { theme, setTheme } = useThemeCustom();
   const [showPass2, setShowPass2] = useState(false);
   const [usuarios, setUsuarios] = useState([]);
   const [usuariosLoading, setUsuariosLoading] = useState(false);
   const [usuariosError, setUsuariosError] = useState('');
   const [niveis, setNiveis] = useState([]);
   const [niveisLoading, setNiveisLoading] = useState(false);
+  const [especialistas, setEspecialistas] = useState([]);
   const [nivelModalOpen, setNivelModalOpen] = useState(false);
   const [nivelSaving, setNivelSaving] = useState(false);
   const [nivelEditing, setNivelEditing] = useState(null); // {id, nome}
@@ -53,7 +58,8 @@ const Configuracoes = () => {
   const [editingUser, setEditingUser] = useState(null); // {id, nome, email}
   const [userNome, setUserNome] = useState('');
   const [userEmail, setUserEmail] = useState('');
-  const [userNivel, setUserNivel] = useState('usuario');
+  const [userNivel, setUserNivel] = useState('');
+  const [userEspecialista, setUserEspecialista] = useState('');
   const [userPass, setUserPass] = useState('');
   const [userPass2, setUserPass2] = useState('');
   const [showUserPass, setShowUserPass] = useState(false);
@@ -67,12 +73,14 @@ const Configuracoes = () => {
       setUsuariosLoading(true);
       setUsuariosError('');
       try {
-        const [items, niveisRows] = await Promise.all([
+        const [items, niveisRows, specs] = await Promise.all([
           usuariosService.list(),
-          niveisService.list()
+          niveisService.list(),
+          especialistasService.list().catch(() => [])
         ]);
         setUsuarios(items);
         setNiveis(niveisRows);
+        setEspecialistas(Array.isArray(specs) ? specs : []);
       } catch (e) {
         setUsuariosError(e.message || 'Erro ao carregar usuários');
       } finally {
@@ -121,6 +129,15 @@ const Configuracoes = () => {
               <div style={{ color: '#374151', fontSize: 14, marginBottom: 6 }}>E-mail</div>
               <input defaultValue={(authService.getCurrentUser()?.email) || ''} id="acc_email" type="email" style={{ width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: 8 }} />
             </label>
+            <div>
+              <div style={{ color: '#374151', fontSize: 14, marginBottom: 6 }}>Tema</div>
+              <ToggleSwitch
+                checked={theme === 'dark'}
+                onChange={(checked) => { setTheme(checked ? 'dark' : 'light'); }}
+                labelOn="Escuro"
+                labelOff="Claro"
+              />
+            </div>
             <label>
               <div style={{ color: '#374151', fontSize: 14, marginBottom: 6 }}>Nova senha</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -145,6 +162,7 @@ const Configuracoes = () => {
                 const email = document.getElementById('acc_email').value;
                 const senha = document.getElementById('acc_pass').value;
                 const senha2 = document.getElementById('acc_pass2').value;
+                const temaSel = (theme === 'dark') ? 'dark' : 'light';
                 const u = authService.getCurrentUser() || {};
                 const id = u.id || u.id_usuario || u.user_id;
                 try {
@@ -154,7 +172,7 @@ const Configuracoes = () => {
                       return;
                     }
                   }
-                  await authService.updateAccountRemote({ id_usuario: id, nome, email, senha });
+                  await authService.updateAccountRemote({ id_usuario: id, nome, email, senha, tema: (temaSel === 'dark') });
                   alert('Conta atualizada com sucesso.');
                 } catch (e) {
                   alert(e.message || 'Erro ao atualizar conta');
@@ -169,7 +187,7 @@ const Configuracoes = () => {
           <h3>Usuários</h3>
           <p>Crie, edite e desative usuários que acessam o sistema.</p>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-            <button onClick={() => { setEditingUser(null); setUserNome(''); setUserEmail(''); setUserNivel('usuario'); setUserPass(''); setUserPass2(''); setUserModalOpen(true); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '0.5rem 0.8rem', borderRadius: 8, fontWeight: 600 }}>
+            <button onClick={() => { setEditingUser(null); setUserNome(''); setUserEmail(''); setUserNivel(String(niveis[0]?.id_nivel || '')); setUserEspecialista(''); setUserPass(''); setUserPass2(''); setUserModalOpen(true); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-accent-2) 100%)', color: 'white', padding: '0.5rem 0.8rem', borderRadius: 8, fontWeight: 600 }}>
               <AiOutlinePlus /> Novo usuário
             </button>
           </div>
@@ -189,7 +207,7 @@ const Configuracoes = () => {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div style={{ fontWeight: 700, color: '#111827' }}>{nome}</div>
                           <div style={{ display: 'flex', gap: 8 }}>
-                            <button title="Editar" onClick={() => { setEditingUser({ id, nome: nome, email: u.email || '', nivel: u.nivel || 'usuario' }); setUserNome(nome); setUserEmail(u.email || ''); setUserNivel(u.nivel || 'usuario'); setUserPass(''); setUserPass2(''); setUserModalOpen(true); }} style={{ background: '#f3f4f6', padding: 8, borderRadius: 8 }}>✏️</button>
+                            <button title="Editar" onClick={() => { const levelId = (() => { const byId = u.id_nivel || u.nivel_id; if (byId) return String(byId); const byName = niveis.find(n => String(n.nivel).toLowerCase() === String(u.nivel || '').toLowerCase()); if (byName?.id_nivel) return String(byName.id_nivel); return String(niveis[0]?.id_nivel || ''); })(); const espId = u.id_especialista || ''; setEditingUser({ id, nome: nome, email: u.email || '', nivel: levelId, id_especialista: espId }); setUserNome(nome); setUserEmail(u.email || ''); setUserNivel(levelId); setUserEspecialista(String(espId || '')); setUserPass(''); setUserPass2(''); setUserModalOpen(true); }} style={{ background: '#f3f4f6', padding: 8, borderRadius: 8 }}>✏️</button>
                             <button title="Excluir" onClick={() => { setDeleteTarget({ id, nome: nome }); setDeleteOpen(true); }} style={{ background: '#fee2e2', color: '#b91c1c', padding: 8, borderRadius: 8 }}>
                               <AiOutlineDelete />
                             </button>
@@ -228,12 +246,28 @@ const Configuracoes = () => {
               </label>
               <label>
                 <div style={{ color: '#374151', fontSize: 14, marginBottom: 6 }}>Nível</div>
-                <select value={userNivel} onChange={e => setUserNivel(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: 8 }}>
+                <select value={String(userNivel)} onChange={e => { const val = e.target.value; setUserNivel(val); const nivelObj = niveis.find(n => String(n.id_nivel) === String(val)); const isEsp = String(nivelObj?.nivel || '').toLowerCase().includes('especial'); if (!isEsp) setUserEspecialista(''); }} style={{ width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: 8 }}>
                   {niveis.map(n => (
-                    <option key={n.id_nivel} value={n.id_nivel}>{n.nivel}</option>
+                    <option key={n.id_nivel} value={String(n.id_nivel)}>{n.nivel}</option>
                   ))}
                 </select>
               </label>
+              {(() => {
+                const nivelObj = niveis.find(n => String(n.id_nivel) === String(userNivel));
+                const isEspecialista = String(nivelObj?.nivel || '').toLowerCase().includes('especial');
+                if (!isEspecialista) return null;
+                return (
+                  <label>
+                    <div style={{ color: '#374151', fontSize: 14, marginBottom: 6 }}>Especialista</div>
+                    <select value={String(userEspecialista)} onChange={e => setUserEspecialista(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: 8 }}>
+                      <option value="">Selecione...</option>
+                      {especialistas.map(es => (
+                        <option key={es.id_especialista} value={String(es.id_especialista)}>{es.nome_especialista}</option>
+                      ))}
+                    </select>
+                  </label>
+                );
+              })()}
               <label>
                 <div style={{ color: '#374151', fontSize: 14, marginBottom: 6 }}>{editingUser ? 'Nova senha (opcional)' : 'Senha'}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -260,10 +294,18 @@ const Configuracoes = () => {
                   if ((userPass || userPass2) && userPass !== userPass2) { alert('As senhas não conferem'); return; }
                   try {
                     setUserSaving(true);
+                    const nivelObj = niveis.find(n => String(n.id_nivel) === String(userNivel));
+                    const isEspecialista = String(nivelObj?.nivel || '').toLowerCase() === 'especialista';
+                    const espIdToSend = isEspecialista ? Number(userEspecialista || editingUser?.id_especialista || 0) || undefined : undefined;
+                    if (isEspecialista && !espIdToSend) {
+                      alert('Selecione o especialista para este usuário.');
+                      setUserSaving(false);
+                      return;
+                    }
                     if (editingUser) {
-                      await usuariosService.update(editingUser.id, { nome: userNome, email: userEmail, senha: userPass || undefined, nivel: userNivel, id_nivel: userNivel });
+                      await usuariosService.update(editingUser.id, { nome: userNome, email: userEmail, senha: userPass || undefined, nivel: Number(userNivel), id_nivel: Number(userNivel), id_especialista: espIdToSend });
                     } else {
-                      await usuariosService.create({ nome: userNome, email: userEmail, senha: userPass, nivel: userNivel, id_nivel: userNivel });
+                      await usuariosService.create({ nome: userNome, email: userEmail, senha: userPass, nivel: Number(userNivel), id_nivel: Number(userNivel), id_especialista: espIdToSend });
                     }
                     const [items, niveisRows] = await Promise.all([
                       usuariosService.list(),
@@ -277,7 +319,7 @@ const Configuracoes = () => {
                   } finally {
                     setUserSaving(false);
                   }
-                }} disabled={userSaving} style={{ opacity: userSaving ? 0.7 : 1, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '0.6rem 0.9rem', borderRadius: 8, fontWeight: 600 }}>{editingUser ? 'Salvar alterações' : 'Criar usuário'}</button>
+                }} disabled={userSaving} style={{ opacity: userSaving ? 0.7 : 1, background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-accent-2) 100%)', color: 'white', padding: '0.6rem 0.9rem', borderRadius: 8, fontWeight: 600 }}>{editingUser ? 'Salvar alterações' : 'Criar usuário'}</button>
               </div>
             </div>
           </div>

@@ -50,7 +50,7 @@ const CardGrid = styled.div`
 `;
 
 const Card = styled.div`
-  background: white;
+  background: var(--surface-bg);
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
@@ -82,7 +82,7 @@ const IconButton = styled.button`
 
 const CardTitle = styled.h3`
   margin: 0;
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 1.1rem;
 `;
 

@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import authService from '../services/authService';
 import { useStackNav } from '../contexts/StackNav';
+import { useThemeCustom } from '../contexts/ThemeContext';
+import logoLight from '../assets/logo-light.svg';
+import logoDark from '../assets/logo-dark.svg';
 
 const HeaderContainer = styled.header`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -20,15 +23,9 @@ const Nav = styled.nav`
   padding: 0 20px;
 `;
 
-const Logo = styled(Link)`
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: white;
-  transition: transform 0.2s ease;
-
-  &:hover {
-    transform: scale(1.05);
-  }
+const LogoImg = styled.img`
+  height: 28px;
+  display: block;
 `;
 
 const Spacer = styled.div`
@@ -52,35 +49,28 @@ const LogoutButton = styled.button`
 `;
 
 const Header = () => {
-  const { currentPage, setCurrentPage } = useStackNav();
+  const { currentPage, goToPage, setCurrentPage } = useStackNav();
+  const { theme } = useThemeCustom();
 
   React.useEffect(() => {
     const handler = (e) => {
-      if (e?.detail?.page) setCurrentPage(e.detail.page);
+      if (e?.detail?.page) goToPage(e.detail.page);
     };
     window.addEventListener('stacknav:set', handler);
     return () => window.removeEventListener('stacknav:set', handler);
-  }, [setCurrentPage]);
+  }, [goToPage]);
 
   // Não mostrar o header na página de login
-  if (currentPage === 'login') return null;
+  return null;
 
   const handleLogout = () => {
     // Usar o serviço de autenticação para logout
     authService.logout();
     // Voltar para a página de login mantendo URL raiz
-    setCurrentPage('login');
+    goToPage('login');
   };
 
-  return (
-    <HeaderContainer>
-      <Nav>
-        <Logo to="#" onClick={(e) => { e.preventDefault(); setCurrentPage('dashboard'); }}>Dualm</Logo>
-        <Spacer />
-        <LogoutButton onClick={handleLogout}>Sair</LogoutButton>
-      </Nav>
-    </HeaderContainer>
-  );
+  return null;
 };
 
 export default Header;

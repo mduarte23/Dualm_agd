@@ -14,6 +14,9 @@ import Convenios from './pages/Convenios';
 import Empresa from './pages/Empresa';
 import Configuracoes from './pages/Configuracoes';
 import { StackNavProvider, useStackNav } from './contexts/StackNav';
+import { LoadingProvider, useLoading } from './contexts/LoadingContext';
+import LoadingOverlay from './components/LoadingOverlay';
+import { ThemeProviderCustom } from './contexts/ThemeContext';
 import authService from './services/authService';
 import Sidebar from './components/Sidebar';
 
@@ -32,24 +35,35 @@ const MainContent = styled.main`
 function StackedRoot() {
   const { currentPage, setCurrentPage } = useStackNav();
   const isLoginPage = currentPage === 'login';
+  const { startLoading, stopLoading } = useLoading();
 
   // Guardar acesso: se não autenticado, manter na página de login
   useEffect(() => {
     const isAuth = authService.isAuthenticated();
     if (!isAuth && currentPage !== 'login') {
+      startLoading();
       setCurrentPage('login');
+      setTimeout(() => stopLoading(), 150);
     }
     if (isAuth && currentPage === 'login') {
+      startLoading();
       setCurrentPage('dashboard');
+      setTimeout(() => stopLoading(), 150);
     }
   }, [currentPage, setCurrentPage]);
 
   return (
     <AppContainer>
-      <Header />
+      <LoadingOverlay />
       <div style={{ display: isLoginPage ? 'block' : 'grid', gridTemplateColumns: isLoginPage ? '1fr' : 'auto 1fr' }}>
         {!isLoginPage && <Sidebar />}
         <MainContent isLoginPage={isLoginPage}>
+          {!isLoginPage && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-bg)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: 12, padding: '12px 16px', marginBottom: 12 }}>
+              <span style={{ fontWeight: 700 }}>Bem-vindo, {(authService.getCurrentUser()?.nome || authService.getCurrentUser()?.nome_usuario || authService.getCurrentUser()?.name || 'Usuário')}!</span>
+              <span style={{ color: 'var(--muted)' }}>Tenha um excelente dia de trabalho.</span>
+            </div>
+          )}
           {currentPage === 'login' && <Home />}
           {currentPage === 'dashboard' && <Dashboard />}
           {currentPage === 'agendamento' && <Agendamento />}
@@ -70,11 +84,13 @@ function StackedRoot() {
 function App() {
   return (
     <Router>
-      <StackNavProvider>
-        <Routes>
-          <Route path="/" element={<StackedRoot />} />
-        </Routes>
-      </StackNavProvider>
+      <ThemeProviderCustom>
+        <StackNavProvider>
+          <Routes>
+            <Route path="/" element={<StackedRoot />} />
+          </Routes>
+        </StackNavProvider>
+      </ThemeProviderCustom>
     </Router>
   );
 }

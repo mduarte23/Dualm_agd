@@ -1,28 +1,32 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import logoLight from '../assets/logo-light.svg';
+import logoDark from '../assets/logo-dark.svg';
+import { useThemeCustom } from '../contexts/ThemeContext';
+import authService from '../services/authService';
 import { useStackNav } from '../contexts/StackNav';
 
 const SidebarContainer = styled.aside`
-  background: #111827;
-  color: #e5e7eb;
+  background: #f3f4f6;
+  color: #111827;
   width: ${props => (props.$collapsed ? '72px' : '240px')};
   transition: width 0.25s ease;
-  height: calc(100vh - 64px);
+  height: 100vh;
   position: sticky;
-  top: 64px;
+  top: 0;
   overflow: hidden;
-  border-right: 1px solid #1f2937;
+  border-right: 1px solid #e5e7eb;
 `;
 
 const ToggleButton = styled.button`
   width: 100%;
   background: transparent;
-  color: #9ca3af;
+  color: #374151;
   padding: 12px 16px;
-  border-bottom: 1px solid #1f2937;
+  border-bottom: 1px solid #e5e7eb;
   cursor: pointer;
   text-align: left;
-  &:hover { color: #f3f4f6; }
+  &:hover { color: #111827; }
 `;
 
 const Menu = styled.ul`
@@ -42,10 +46,10 @@ const ItemButton = styled.button`
   gap: 12px;
   padding: 10px 12px;
   border-radius: 8px;
-  color: ${props => (props.$active ? '#111827' : '#d1d5db')};
-  background: ${props => (props.$active ? '#a5b4fc' : 'transparent')};
+  color: ${props => (props.$active ? '#111827' : '#374151')};
+  background: ${props => (props.$active ? '#e5e7eb' : 'transparent')};
   cursor: pointer;
-  &:hover { background: ${props => (props.$active ? '#a5b4fc' : '#1f2937')}; }
+  &:hover { background: ${props => (props.$active ? '#e5e7eb' : '#f3f4f6')}; }
 `;
 
 const Icon = styled.span`
@@ -61,7 +65,8 @@ const Label = styled.span`
 `;
 
 const Sidebar = () => {
-  const { currentPage, setCurrentPage } = useStackNav();
+  const { currentPage, goToPage } = useStackNav();
+  const { theme } = useThemeCustom();
   const [collapsed, setCollapsed] = useState(false);
 
   const items = [
@@ -77,14 +82,24 @@ const Sidebar = () => {
 
   return (
     <SidebarContainer $collapsed={collapsed}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
+        <img
+          src={theme === 'dark' ? logoDark : logoLight}
+          alt="Dualm"
+          style={{ maxWidth: '100%', height: 'auto', maxHeight: 28, display: 'block' }}
+        />
+        <div style={{ marginLeft: 'auto' }}>
+          <button onClick={() => { authService.logout(); goToPage('login'); }} title="Sair" style={{ background: '#e5e7eb', color: '#111827', padding: '6px 10px', borderRadius: 8 }}>Sair</button>
+        </div>
+      </div>
       <ToggleButton onClick={() => setCollapsed(v => !v)}>
-        {collapsed ? '➤' : '◀ Recolher'}
+        {collapsed ? '☰' : 'Menu'}
       </ToggleButton>
       <Menu>
         {items.map(item => (
           <MenuItem key={item.key}>
             <ItemButton
-              onClick={() => setCurrentPage(item.key)}
+              onClick={() => goToPage(item.key)}
               $active={currentPage === item.key}
               title={item.label}
             >

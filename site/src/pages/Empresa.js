@@ -67,7 +67,7 @@ const SecondaryButton = styled.button`
 `;
 
 const PrimaryButton = styled.button`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-accent-2) 100%);
   color: white;
   padding: 0.6rem 0.9rem;
   border-radius: 8px;
@@ -75,7 +75,7 @@ const PrimaryButton = styled.button`
 `;
 
 const Card = styled.div`
-  background: white;
+  background: var(--surface-bg);
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);

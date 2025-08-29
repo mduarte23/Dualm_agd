@@ -40,6 +40,7 @@ def atualizar_conta():
     nome = data.get("nome_usuario")
     email = data.get("email")
     senha = data.get("senha")
+    tema = data.get("tema")
     if not user_id:
         return jsonify({"success": False, "message": "Informe id_usuario"}), 400
 
@@ -63,6 +64,9 @@ def atualizar_conta():
         if senha:
             sets.append("senha = %s")
             values.append(camuflar_senha(senha))
+        if tema is not None:
+            sets.append("tema = %s")
+            values.append(bool(tema))
         if not sets:
             return jsonify({"success": False, "message": "Nada para atualizar"}), 400
         values.append(user_id)

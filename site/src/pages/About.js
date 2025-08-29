@@ -25,7 +25,7 @@ const AboutSubtitle = styled.p`
 `;
 
 const ContentSection = styled.section`
-  background: white;
+  background: var(--surface-bg);
   padding: 2rem;
   border-radius: 15px;
   margin-bottom: 2rem;

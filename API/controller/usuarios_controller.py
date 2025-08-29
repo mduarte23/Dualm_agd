@@ -22,7 +22,8 @@ def usuarios_criar():
     senha = data.get('senha')
     # aceitar tanto 'nivel' (nome) quanto 'id_nivel' (fk)
     nivel = data.get('id_nivel') if data.get('id_nivel') is not None else data.get('nivel')
-    resultado = criar(dominio, nome_usuario, email, senha, nivel)
+    id_especialista = data.get('id_especialista')
+    resultado = criar(dominio, nome_usuario, email, senha, nivel, id_especialista)
     status = 200 if resultado.get('success') else 400
     return jsonify(resultado), status
 
@@ -35,7 +36,8 @@ def usuarios_atualizar(id_usuario):
     email = data.get('email')
     senha = data.get('senha')
     nivel = data.get('id_nivel') if data.get('id_nivel') is not None else data.get('nivel')
-    resultado = atualizar(dominio, id_usuario, nome_usuario=nome_usuario, email=email, senha=senha, nivel=nivel)
+    id_especialista = data.get('id_especialista') if 'id_especialista' in data else None
+    resultado = atualizar(dominio, id_usuario, nome_usuario=nome_usuario, email=email, senha=senha, nivel=nivel, id_especialista=id_especialista)
     status = 200 if resultado.get('success') else 400
     return jsonify(resultado), status
 

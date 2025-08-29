@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
 import authService from '../services/authService';
+import { useLoading } from './LoadingContext';
 
 const StackNavContext = createContext(null);
 
@@ -15,7 +16,17 @@ export const StackNavProvider = ({ children }) => {
     }
   }, []);
 
-  const value = useMemo(() => ({ currentPage, setCurrentPage }), [currentPage]);
+  const { startLoading, stopLoading } = useLoading();
+
+  const goToPage = (nextPage) => {
+    if (nextPage === currentPage) return;
+    startLoading();
+    setCurrentPage(nextPage);
+    // small delay to allow page mount to render before hiding
+    setTimeout(() => stopLoading(), 200);
+  };
+
+  const value = useMemo(() => ({ currentPage, setCurrentPage, goToPage }), [currentPage]);
   return (
     <StackNavContext.Provider value={value}>
       {children}

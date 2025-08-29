@@ -23,8 +23,8 @@ const CalendarGrid = styled.div`
 `;
 
 const DayCell = styled.div`
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-bg);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 8px;
   min-height: 120px;
@@ -45,12 +45,12 @@ const EventTag = styled.div`
   padding: 4px 6px;
   border-radius: 8px;
   background: ${p => p.$bg || '#f3f4f6'};
-  color: #111827;
+  color: var(--text-primary);
   font-size: 12px;
   display: flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
 `;
 
 const Toolbar = styled.div`
@@ -68,7 +68,7 @@ const Button = styled.button`
 `;
 
 const PrimaryButton = styled.button`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-accent-2) 100%);
   color: white;
   padding: 0.6rem 0.9rem;
   border-radius: 8px;

@@ -27,7 +27,7 @@ const SearchInput = styled.input`
 `;
 
 const PrimaryButton = styled.button`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-accent-2) 100%);
   color: white;
   padding: 0.6rem 0.9rem;
   border-radius: 8px;
@@ -50,7 +50,7 @@ const CardGrid = styled.div`
 `;
 
 const Card = styled.div`
-  background: white;
+  background: var(--surface-bg);
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
@@ -82,7 +82,7 @@ const IconButton = styled.button`
 
 const CardTitle = styled.h3`
   margin: 0;
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 1.1rem;
 `;
 

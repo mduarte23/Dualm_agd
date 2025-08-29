@@ -22,10 +22,15 @@ class AuthService {
       }
 
       const user = data.usuario || {};
+      const token = data.token;
 
       // Persistir usuário e domínio atual
       localStorage.setItem('userInfo', JSON.stringify(user));
       localStorage.setItem('clientInfo', JSON.stringify({ dominio: domain }));
+      if (token) {
+        localStorage.setItem('authToken', token);
+        try { axios.defaults.headers.common['Authorization'] = `Bearer ${token}`; } catch {}
+      }
 
       return {
         success: true,
@@ -66,17 +71,21 @@ class AuthService {
   logout() {
     localStorage.removeItem('userInfo');
     localStorage.removeItem('clientInfo');
+    localStorage.removeItem('authToken');
+    try { delete axios.defaults.headers.common['Authorization']; } catch {}
   }
 
-  async updateAccountRemote({ id_usuario, nome, email, senha }) {
+  async updateAccountRemote({ id_usuario, nome, email, senha, tema }) {
     const dominio = this.getCurrentClient()?.dominio;
     const payload = { dominio, id_usuario, nome_usuario: nome, email, senha };
+    if (typeof tema === 'boolean') payload.tema = tema;
     const response = await axios.put(`${API_BASE_URL}/conta`, payload);
     const data = response.data || {};
     if (!data.success) throw new Error(data.message || 'Erro ao atualizar conta');
     // Atualiza localmente nome/email
     const userInfo = this.getCurrentUser() || {};
     const updated = { ...userInfo, nome: nome ?? userInfo.nome, email: email ?? userInfo.email };
+    if (typeof tema === 'boolean') updated.tema = tema;
     localStorage.setItem('userInfo', JSON.stringify(updated));
     return { success: true, user: updated };
   }

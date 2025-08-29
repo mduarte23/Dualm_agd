@@ -8,7 +8,7 @@ const DashboardContainer = styled.div`
 `;
 
 const WelcomeSection = styled.div`
-  background: white;
+  background: var(--surface-bg);
   padding: 2rem;
   border-radius: 15px;
   margin-bottom: 2rem;
@@ -17,12 +17,12 @@ const WelcomeSection = styled.div`
 
 const WelcomeTitle = styled.h1`
   font-size: 2rem;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
 `;
 
 const WelcomeSubtitle = styled.p`
-  color: #666;
+  color: var(--muted);
   font-size: 1.1rem;
 `;
 
@@ -34,7 +34,7 @@ const StatsGrid = styled.div`
 `;
 
 const StatCard = styled.div`
-  background: white;
+  background: var(--surface-bg);
   padding: 1.5rem;
   border-radius: 15px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
@@ -50,12 +50,12 @@ const StatNumber = styled.div`
 `;
 
 const StatLabel = styled.div`
-  color: #666;
+  color: var(--muted);
   font-size: 0.9rem;
 `;
 
 const RecentActivity = styled.div`
-  background: white;
+  background: var(--surface-bg);
   padding: 2rem;
   border-radius: 15px;
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
@@ -63,9 +63,9 @@ const RecentActivity = styled.div`
 
 const SectionTitle = styled.h2`
   font-size: 1.5rem;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 1.5rem;
-  border-bottom: 2px solid #f0f0f0;
+  border-bottom: 2px solid var(--border-color);
   padding-bottom: 0.5rem;
 `;
 
@@ -75,7 +75,7 @@ const ActivityList = styled.ul`
 
 const ActivityItem = styled.li`
   padding: 1rem 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -88,7 +88,7 @@ const ActivityItem = styled.li`
 const ActivityIcon = styled.div`
   width: 40px;
   height: 40px;
-  background: #f8f9fa;
+  background: var(--panel-bg);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -102,13 +102,13 @@ const ActivityContent = styled.div`
 
 const ActivityTitle = styled.div`
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 0.2rem;
 `;
 
 const ActivityTime = styled.div`
   font-size: 0.9rem;
-  color: #999;
+  color: var(--muted);
 `;
 
 const QuickActions = styled.div`
@@ -130,7 +130,7 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [agendamentos, setAgendamentos] = useState([]);
   const [stats, setStats] = useState({ hoje: 0, semana: 0, mes: 0, futuros: 0, porMedico: [] });
-  const API_BASE_URL = process.env.REACT_APP_API_URL || '';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || axios.defaults.baseURL || 'http://localhost:5000';
 
   useEffect(() => {
     (async () => {

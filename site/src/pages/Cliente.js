@@ -38,7 +38,7 @@ const CardGrid = styled.div`
 `;
 
 const Card = styled.div`
-  background: white;
+  background: var(--surface-bg);
   border-radius: 10px;
   padding: 12px;
   box-shadow: 0 5px 20px rgba(0,0,0,0.08);
@@ -51,7 +51,7 @@ const CardHeader = styled.div`
 
 const CardTitle = styled.h3`
   margin: 0;
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 1.1rem;
 `;
 
@@ -218,7 +218,7 @@ const Cliente = () => {
       {error && <div style={{ background: '#fee', color: '#c33', padding: '8px 10px', borderRadius: 8, marginBottom: 10 }}>{error}</div>}
       <Controls>
         <SearchInput placeholder="Buscar por nome ou contato" value={search} onChange={e => setSearch(e.target.value)} />
-        <button onClick={() => { setEditing(null); setForm({ nome: '', contato: '', 'cpf-carteira': '', convenio: false, id_convenio: '', data_nascimento: '' }); setModalOpen(true); }} style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '0.6rem 0.9rem', borderRadius: 8, fontWeight: 700 }}>Novo cliente</button>
+        <button onClick={() => { setEditing(null); setForm({ nome: '', contato: '', 'cpf-carteira': '', convenio: false, id_convenio: '', data_nascimento: '' }); setModalOpen(true); }} style={{ background: 'linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-accent-2) 100%)', color: 'white', padding: '0.6rem 0.9rem', borderRadius: 8, fontWeight: 700 }}>Novo cliente</button>
       </Controls>
 
       {loading ? (

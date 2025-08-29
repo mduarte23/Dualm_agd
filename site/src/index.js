@@ -2,12 +2,17 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { LoadingProvider } from './contexts/LoadingContext';
 import reportWebVitals from './reportWebVitals';
+import { installAxiosAuthInterceptor } from './services/axiosSetup';
 
+installAxiosAuthInterceptor();
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <LoadingProvider>
+      <App />
+    </LoadingProvider>
   </React.StrictMode>
 );
 

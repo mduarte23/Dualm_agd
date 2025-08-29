@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useStackNav } from '../contexts/StackNav';
 import styled from 'styled-components';
+import { useThemeCustom } from '../contexts/ThemeContext';
+import logoLight from '../assets/logo-light.svg';
+import logoDark from '../assets/logo-dark.svg';
 import authService from '../services/authService';
 
 const LoginContainer = styled.div`
@@ -8,7 +11,7 @@ const LoginContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #0f172a;
   padding: 2rem;
 `;
 
@@ -22,10 +25,8 @@ const LoginCard = styled.div`
   text-align: center;
 `;
 
-const Logo = styled.div`
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: #667eea;
+const LogoImg = styled.img`
+  height: 42px;
   margin-bottom: 0.5rem;
 `;
 
@@ -75,7 +76,7 @@ const Input = styled.input`
 `;
 
 const LoginButton = styled.button`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--brand-accent) 0%, var(--brand-accent-2) 100%);
   color: white;
   padding: 1rem;
   border-radius: 10px;
@@ -86,7 +87,7 @@ const LoginButton = styled.button`
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 10px 25px rgba(49, 46, 129, 0.35);
   }
 
   &:disabled {
@@ -139,8 +140,21 @@ const LoadingMessage = styled.div`
   border: 1px solid #bbdefb;
 `;
 
+const Spinner = styled.div`
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(102,126,234,0.25);
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+  margin: 0 auto 12px auto;
+
+  @keyframes spin { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
+`;
+
 const Home = () => {
   const { setCurrentPage } = useStackNav();
+  const { theme } = useThemeCustom();
   const [formData, setFormData] = useState({
     domain: '',
     email: '',
@@ -198,13 +212,8 @@ const Home = () => {
         formData.password
       );
 
-      setLoadingStep('Login realizado com sucesso!');
-      setSuccess(`Bem-vindo, ${loginResult.user.name || loginResult.user.email}! Redirecionando...`);
-      
-      // Redirecionar para o Dashboard (URL fica na raiz)
-      setTimeout(() => {
-        setCurrentPage('dashboard');
-      }, 2000);
+      // Redirecionar imediatamente para o Dashboard
+      setCurrentPage('dashboard');
       
     } catch (err) {
       setError(err.message || 'Erro ao fazer login. Tente novamente.');
@@ -217,12 +226,12 @@ const Home = () => {
   return (
     <LoginContainer>
       <LoginCard>
-        <Logo>Dualm</Logo>
+        <LogoImg src={theme === 'dark' ? logoDark : logoLight} alt="Dualm" />
         <Subtitle>Faça login para acessar sua conta</Subtitle>
         
         <LoginForm onSubmit={handleSubmit}>
           {error && <ErrorMessage>{error}</ErrorMessage>}
-          {success && <SuccessMessage>{success}</SuccessMessage>}
+          {isLoading && <Spinner />}
           {loadingStep && <LoadingMessage>{loadingStep}</LoadingMessage>}
           
           <FormGroup>
